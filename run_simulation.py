@@ -1,8 +1,12 @@
 import threading
+from learning.environment import Environment
 import time
 
 def run_environment():
-    return 0
+    pass
+
+def stop_environment():
+    pass
 
 def run_nodes():
     return 0
