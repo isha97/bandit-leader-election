@@ -92,7 +92,8 @@ class v1(Node):
                 ids = self._select_leader(topn=int((self.total_nodes-1)/3))
                 # add candidate message to out queue
                 for i in range(self.total_nodes):
-                    self.out_queue.append([i, CandidateMessage(self.id, step, ids)])
+                    if i != self.id:
+                        self.out_queue.append([i, CandidateMessage(self.id, step, ids)])
             else:
                 return []
 
@@ -120,5 +121,11 @@ class v1(Node):
 
         if len(candidates) > 0:
             self.leader = np.argmax(np.bincount(candidates))
+
+            if self.leader == self.id:
+                # Broadcast candidate acceptance
+                for i in range(self.total_nodes):
+                    if i != self.id:
+                        self.out_queue.append([i, ConfirmElectionMessage(self.id, step)])
 
         return []
