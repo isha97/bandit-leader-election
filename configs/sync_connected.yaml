@@ -1,0 +1,30 @@
+num_faulty_nodes: 10 # f
+num_nodes: 31 # >= 3f + 1
+stationary: True
+sleep_sec: 2
+node_sleep: .1
+steps: 10000
+
+# Failure prob set by environment 
+fail_prob:
+  # Initial prob.
+  init:
+    mean: 0.2
+    std: 0.1
+  # Update delta prob.
+  update:
+    mean: 0.05
+    std: 0.01
+    inc_split: 0.5 # Fraction of nodes to increase failure prob
+
+# Initial failure estimates
+failure_estimates:
+  mean: 0.1
+  std: 0.05
+
+# Simpliest leader election
+v1:
+  leader_timeout: 6
+  epsilon: 0.9
+  decay: 0.999
+  alpha: 0.1
