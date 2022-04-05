@@ -63,8 +63,8 @@ if __name__ == "__main__":
     env.run_threads()
 
     # Run nodes
-    generate_failure = threading.Thread(
+    simulate_nodes = threading.Thread(
         target=run_nodes,
         args=(config,message_buffer,)
     )
-    generate_failure.start()
+    simulate_nodes.start()

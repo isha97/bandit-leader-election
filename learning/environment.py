@@ -22,6 +22,7 @@ class Environment:
         self.stationary = config.stationary
         self.init_prob = config.fail_prob.init
         self.update_prob = config.fail_prob.update
+        self.min_fail_fraction = config.min_fail_fraction
 
         self.run = False
         self.set_probability()
@@ -41,9 +42,10 @@ class Environment:
         while self.run:
             # Sample from binomial dist. (p = node failure prob.)
             indices = []
-            for idx, val in enumerate(self.failure_probability):
-                if np.random.binomial(1, val) == 1:
-                    indices.append(idx)
+            while len(indices) < self.min_fail_fraction*self.max_failed_nodes:
+                for idx, val in enumerate(self.failure_probability):
+                    if idx not in indices and np.random.binomial(1, val) == 1:
+                        indices.append(idx)
             # Random sample to limit nodes failed to self.max_failed_nodes
             if len(indices) > self.max_failed_nodes:
                 indices = np.random.choice(
@@ -91,7 +93,7 @@ class Environment:
                                                 self.failure_probability[increase]
                                                 )
 
-                time.sleep(self.sleep_sec*1)
+                time.sleep(self.sleep_sec*3)
         else:
             # Do not change failure prob in stationary case
             pass
@@ -102,8 +104,8 @@ class Environment:
         self.run = True
         generate_failure = threading.Thread(target=self.fail_nodes)
         generate_failure.start()
-        generate_failure1 = threading.Thread(target=self.update_probability)
-        generate_failure1.start()
+        update_failure_probability = threading.Thread(target=self.update_probability)
+        update_failure_probability.start()
 
 
     def stop_threads(self):

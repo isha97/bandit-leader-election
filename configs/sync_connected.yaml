@@ -4,6 +4,7 @@ stationary: True
 sleep_sec: 2
 node_sleep: .1
 steps: 10000
+min_fail_fraction: 0.5
 
 # Failure prob set by environment 
 fail_prob:
