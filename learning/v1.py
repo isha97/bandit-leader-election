@@ -3,6 +3,9 @@ from numpy.random import default_rng
 
 from .node import Node
 from .message import *
+import threading
+
+lock = threading.Lock()
 
 
 class v1(Node):
@@ -64,7 +67,9 @@ class v1(Node):
             # clear our out buffer
             while len(self.out_queue) > 0:
                 dest, message = self.out_queue.pop()
+                lock.acquire()
                 message_buffer[dest].append(message)
+                lock.release()
 
         return message_buffer
 
