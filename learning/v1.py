@@ -37,7 +37,7 @@ class v1(Node):
         """
         if np.random.rand() < self.epsilon:
             try:
-                ids = self.rng.choice(self.total_nodes, size=topn+1, replace=False)
+                ids = self.rng.choice(self.total_nodes, size=topn, replace=False)
             except:
                 ids = np.arange(-1, self.total_nodes)
             if self.leader in ids:
