@@ -2,11 +2,13 @@ import numpy as np
 import time
 import threading
 from sklearn.model_selection import train_test_split
+import socket
+from .message import *
 
 lock = threading.Lock()
 
 class Environment:
-    def __init__(self, n, sleep_sec, nodes, config):
+    def __init__(self, n, sleep_sec, config):
         """Initialize environment
 
             n: total number of nodes
@@ -18,7 +20,6 @@ class Environment:
         self.failure_probability = np.zeros(n)
         self.max_failed_nodes = int((n - 1)/3)
         self.sleep_sec = sleep_sec
-        self.nodes = nodes
         self.stationary = config.stationary
         self.init_prob = config.fail_prob.init
         self.update_prob = config.fail_prob.update
@@ -26,6 +27,11 @@ class Environment:
 
         self.run = False
         self.set_probability()
+
+        ports = []
+        for i in range(n):
+            ports[i] = 49153 + i
+        self.ports = ports
 
 
     def set_probability(self):
@@ -54,12 +60,25 @@ class Environment:
                     replace=False
                 )
             # Acquire lock and update all node status
-            lock.acquire()
-            for i in range(len(self.nodes)):
-                self.nodes[i].is_failed = False
-            for f in indices:
-                self.nodes[f].is_failed = True
-            lock.release()
+            # for i in range(len(self.nodes)):
+            #     self.nodes[i].is_failed = False
+            # for f in indices:
+            #     self.nodes[f].is_failed = True
+            # send the failure values to the respective nodes
+            host = '127.0.0.1'
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            for port in self.ports:
+                try:
+                    if port - 49153 in indices:
+                        failVal = "True"
+                    else:
+                        failVal = "False"
+                    message = str(FailureMessage(failVal))
+                    s.connect((host, port))
+                    s.send(message.encode('ascii'))
+                    s.close()
+                except Exception as msg:
+                    print(msg)
             time.sleep(self.sleep_sec)
 
 

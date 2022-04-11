@@ -25,7 +25,7 @@ class Node(object):
         self.out_queue = []
 
 
-    def send(self, message_buffer, step):
+    def send(self, message_buffer):
         """Send message to other nodes
 
             message_buffer: (dict) key = idx of receiver, value = message
@@ -38,7 +38,7 @@ class Node(object):
         pass
 
 
-    def recieve(self, messages):
+    def recieve(self, messages, step):
         """Recieve messages from other nodes
         
             messages: list of messages to node

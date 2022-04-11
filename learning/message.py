@@ -21,7 +21,7 @@ class EstimatesMessage(Message):
         self.estimates = estimates
 
     def __str__(self):
-        return('From: {} @ {} \t Estimates: {}'.format(self.sender, self.step, self.estimates))
+        return('EstimateMsg {} {} {}'.format(self.sender, self.step, self.estimates))
 
 
 class CandidateMessage(Message):
@@ -36,18 +36,20 @@ class CandidateMessage(Message):
         self.candidates = candidates
 
     def __str__(self):
-        return('From: {} @ {} \t Candidates: {}'.format(self.sender, self.step, self.candidates))
+        return('CandidateMsg {} {} {}'.format(self.sender, self.step, self.candidates))
 
 
-class PingMessage(Message):
-    def __init__(self, id, step):
+class PingMessage():
+    def __init__(self):
         """Ping destination expecting reply
 
             id: id of sender
             step: time step
         """
-        super().__init__(id, step)
         pass
+
+    def __str__(self):
+        return ('PingMsg')
 
 
 class ReplyPingMessage(Message):
@@ -60,6 +62,9 @@ class ReplyPingMessage(Message):
         super().__init__(id, step)
         pass
 
+    def __str__(self):
+        return ('ReplyPingMsg {}', self.sender)
+
 
 class ConfirmElectionMessage(Message):
     def __init__(self, id, step):
@@ -70,3 +75,19 @@ class ConfirmElectionMessage(Message):
         """
         super().__init__(id, step)
         pass
+
+        def __str__(self):
+            return('ConfirmElectionMsg {} {}'.format(self.id, self.step))
+
+class FailureMessage():
+    def __init__(self, failureVal):
+        """Share you candidates with destination
+
+            id: id of sender
+            step: time step
+            candidates: np.array of all node failure candidates
+        """
+        self.failureVal = failureVal
+
+    def __str__(self):
+        return('FailureMsg {}'.format(self.failureVal))
