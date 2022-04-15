@@ -1,5 +1,6 @@
+import ast
 class Message():
-    def __init__(self, id, step):
+    def __init__(self, id, step=None):
         """Base message class with just sender id
 
             id: id of sender
@@ -17,7 +18,7 @@ class EstimatesMessage(Message):
             step: time step
             estimates: np.array of all node failure estimates
         """
-        super().__init__(id, step)
+        super().__init__(int(id), step)
         self.estimates = estimates
 
     def __str__(self):
@@ -32,8 +33,11 @@ class CandidateMessage(Message):
             step: time step
             candidates: np.array of all node failure candidates
         """
-        super().__init__(id, step)
+        super().__init__(int(id), step)
         self.candidates = candidates
+
+    def parse_candidates(self):
+        self.candidates = ast.literal_eval(self.candidates)
 
     def __str__(self):
         return('CandidateMsg {} {} {}'.format(self.sender, self.step, self.candidates))
@@ -53,27 +57,27 @@ class PingMessage():
 
 
 class ReplyPingMessage(Message):
-    def __init__(self, id, step):
+    def __init__(self, id, step=None):
         """Reply to Ping message
 
             id: id of sender
             step: time step
         """
-        super().__init__(id, step)
+        super().__init__(int(id), step)
         pass
 
     def __str__(self):
-        return ('ReplyPingMsg {}', self.sender)
+        return ('ReplyPingMsg {}'.format(self.sender))
 
 
 class ConfirmElectionMessage(Message):
-    def __init__(self, id, step):
+    def __init__(self, id, step=None):
         """Broadcast message to confirm sender is leader
 
             id: id of sender
             step: time step
         """
-        super().__init__(id, step)
+        super().__init__(int(id), step)
         pass
 
         def __str__(self):

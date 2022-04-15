@@ -35,6 +35,7 @@ class v2(Node):
         self.leader_timeout = config.v1.leader_timeout
         self.leader_timeout_cnt = 0
         self.candidates = []
+        self.my_candidates = []
 
     def _select_leader(self, topn=1):
         """Select candidate leaders
@@ -59,7 +60,31 @@ class v2(Node):
             ids = (-self.failure_estimates).argsort()[-topn:]
         self.epsilon *= self.decay
         ids = np.sort(ids)
+        self.my_candidates = ids
         return ids
+
+    def simulate_client(self):
+        while True:
+            print("Leader ", self.leader)
+            print("id ", self.id)
+            if True:
+                print('Leader sending pings..')
+                host = '127.0.0.1'
+                for port in self.ports:
+                    if port != self.my_receving_port:
+                        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                        message = str(PingMessage())
+                        try:
+                            s.connect((host, port))
+                            s.send(message.encode('ascii'))
+                            s.close()
+                        except Exception as msg:
+                            print(msg)
+                            s.close()
+            time.sleep(5)
+
+
+
 
     def send(self, message_buffer):
         """Send message to other nodes
@@ -71,6 +96,7 @@ class v2(Node):
             messages (dict): dict with keys as ids and values as messages
         """
         # if we are faulty, do not send anything
+        # TODO : retry on send
         while self.run:
             if self.is_failed:
                 pass
@@ -78,10 +104,11 @@ class v2(Node):
                 # clear our out buffer
                 host = '127.0.0.1'
                 while len(self.out_queue) > 0:
-                    dest, message = self.out_queue.pop()
+                    message = self.out_queue.pop()
                     for port in self.ports:
-                        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                         if port != self.my_receving_port:
+                            print("Sending message {} to node {}".format(message, port))
+                            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                             try:
                                 s.connect((host, port))
                                 s.send(message.encode('ascii'))
@@ -94,17 +121,23 @@ class v2(Node):
     def multi_threaded_client(self,connection):
         while True:
             data = str(connection.recv(2048).decode('ascii'))
+            print("Received message {} from node", data)
             if data.startswith("ConfirmElectionMsg"):
                 message = ConfirmElectionMessage(data.split(" ")[1], data.split(" ")[2])
                 self.recieve_confirm_election_msg(message)
             if data.startswith("CandidateMsg"):
                 message = CandidateMessage(data.split(" ")[1], data.split(" ")[2], data.split(" ")[3])
+                message.parse_candidates()
                 self.recieve_candidate_msg(message)
             if data.startswith("PingMsg"):
                 self.recieve_ping()
             if data.startswith("ReplyPingMsg"):
-                message = ReplyPingMessage(data.split(" ")[1], data.split(" ")[2])
-                self.message_buffer[message.sender] = message
+                #TODO : add request id
+                #TODO: decrease the failure probability of the leader
+                message = ReplyPingMessage(data.split(" ")[1])
+                lock.acquire()
+                self.message_buffer[message.sender].append(message)
+                lock.release()
             if data.startswith("FailureMsg"):
                 message = FailureMessage(data.split(" ")[1])
                 lock.acquire()
@@ -136,8 +169,10 @@ class v2(Node):
             pass
 
         if self.leader == self.id:
-            self.out_queue.append(ReplyPingMessage(self.id, 0))
+            self.out_queue.append(str(ReplyPingMessage(self.id, 0)))
+            #TODO : reply to client
         else:
+            # TODO: checing if the node received a ReplyPing from leader for the request id
             if len(self.message_buffer[self.leader]) == 0:
                 time.sleep(self.leader_timeout)
                 # if equal to threshold, create candidates
@@ -150,22 +185,29 @@ class v2(Node):
                     # add candidate message to out queue
                     for i in range(self.total_nodes):
                         if i != self.id:
-                            self.out_queue.append(str(CandidateMessage(self.id, 0, ids)))
+                            self.out_queue.append(str(CandidateMessage(self.id, 0, list(ids))))
             else:
                 self.message_buffer[self.leader].clear()
 
 
     def recieve_candidate_msg(self, message):
-        self.candidates.extend(message.candidates)
+        self.candidates.append(message.candidates)
+        print("message candidates", type(message.candidates))
 
-        if len(self.candidates) > 2*(self.total_nodes - 1)/3:
-            self.leader = np.argmax(np.bincount(self.candidates))
-            self.candidates = []
+        if len(self.candidates) > 2*(self.total_nodes - 1)/3 and len(self.my_candidates) > 0:
+            self.candidates.append(self.my_candidates)
+            #self.candidates.clear()
+            # TODO : how to clear the self.candidates list
+            candidate_np =  np.array(self.candidates).flatten()
+            print("candidate_np: ", candidate_np)
+            print("candidate_np_type: ", type(candidate_np))
+            self.leader = np.argmax(np.bincount(candidate_np))
             if self.leader == self.id:
                 # Broadcast candidate acceptance
-                for i in range(self.total_nodes):
-                    if i != self.id:
-                        self.out_queue.append(str(ConfirmElectionMessage(self.id, 0)))
+                lock.acquire()
+                self.out_queue.append(str(ConfirmElectionMessage(self.id, 0)))
+                lock.release()
+
 
 
     def recieve_confirm_election_msg(self, message):
@@ -178,10 +220,12 @@ class v2(Node):
     def run_node(self):
         """Run threads to send and receive messages"""
         self.run = True
-        receive = threading.Thread(target=self.reveive_messages)
-        receive.start()
-        send_message = threading.Thread(target=self.send([]))
-        send_message.start()
+        # receive = threading.Thread(target=self.reveive_messages)
+        # receive.start()
+        # send_message = threading.Thread(target=self.send([]))
+        # send_message.start()
+        client_simulation = threading.Thread(target=self.simulate_client)
+        client_simulation.start()
 
 
     def stop_node(self):

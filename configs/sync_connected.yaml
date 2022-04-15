@@ -1,5 +1,5 @@
-num_faulty_nodes: 10 # f
-num_nodes: 31 # >= 3f + 1
+num_faulty_nodes: 1 # f
+num_nodes: 4 # >= 3f + 1
 stationary: True
 sleep_sec: 2
 node_sleep: .1

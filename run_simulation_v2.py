@@ -44,7 +44,9 @@ if __name__ == "__main__":
 
     if type.startswith('node'):
         node_id = type.split("_")[1]
-        node = Node(node_id, config.num_nodes, config)
+        node = Node(int(node_id), config.num_nodes, config)
         node.run_node()
         time.sleep(500)
         node.stop_node()
+
+    #TODO : ping client

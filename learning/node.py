@@ -19,7 +19,7 @@ class Node(object):
         )
         # Keep track of how many times a node was selected as candidate
         self.candidate_count = np.zeros(n)
-        self.leader = 0 # Leader index
+        self.leader = 1 # Leader index
 
         # Queue messages for sending
         self.out_queue = []
