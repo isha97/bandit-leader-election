@@ -30,7 +30,7 @@ class Environment:
 
         ports = []
         for i in range(n):
-            ports[i] = 49153 + i
+            ports.append(49153 + i)
         self.ports = ports
 
 
@@ -41,6 +41,8 @@ class Environment:
             self.init_prob.std,
             self.total_nodes
         )
+        self.failure_probability = abs(self.failure_probability)
+        print(self.failure_probability)
 
 
     def fail_nodes(self):
@@ -66,19 +68,21 @@ class Environment:
             #     self.nodes[f].is_failed = True
             # send the failure values to the respective nodes
             host = '127.0.0.1'
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             for port in self.ports:
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 try:
                     if port - 49153 in indices:
                         failVal = "True"
                     else:
                         failVal = "False"
                     message = str(FailureMessage(failVal))
+                    print(port)
                     s.connect((host, port))
                     s.send(message.encode('ascii'))
                     s.close()
                 except Exception as msg:
                     print(msg)
+                    s.close()
             time.sleep(self.sleep_sec)
 
 

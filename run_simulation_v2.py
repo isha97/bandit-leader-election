@@ -24,17 +24,18 @@ if __name__ == "__main__":
         '--config',
         help='Path to config file'
         )
+    parser.add_argument(
+        '-t',
+        '--type',
+        help=' <env|node_id>'
+    )
     args = parser.parse_args()
 
     with open(args.config) as f:
         config = yaml.safe_load(f)
     config = EasyDict(config)
 
-    if len(sys.argv) < 3:
-        print("Usage : <env|node_id>")
-        exit(1)
-
-    type = sys.argv[2]
+    type = args.type
     if type == 'env':
         env = Environment(config.num_nodes, config.sleep_sec, config)
         env.run_threads()

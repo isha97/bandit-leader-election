@@ -26,7 +26,7 @@ class v2(Node):
         self.alpha = config.v1.alpha
         ports = []
         for i in range(n):
-            ports[i] = 49153 + i
+            ports.append(49153 + i)
         self.ports = ports
         self.my_receving_port = ports[id]
         self.message_buffer = {i: [] for i in range(config.num_nodes)}
@@ -77,10 +77,10 @@ class v2(Node):
             else:
                 # clear our out buffer
                 host = '127.0.0.1'
-                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 while len(self.out_queue) > 0:
                     dest, message = self.out_queue.pop()
                     for port in self.ports:
+                        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                         if port != self.my_receving_port:
                             try:
                                 s.connect((host, port))
@@ -88,6 +88,7 @@ class v2(Node):
                                 s.close()
                             except Exception as msg:
                                 print(msg)
+                                s.close()
 
 
     def multi_threaded_client(self,connection):
