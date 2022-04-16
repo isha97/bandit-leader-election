@@ -37,4 +37,4 @@ client:
 #ports
 port:
   client_port : 65000
-  replica_base_port : 49153
+  replica_base_port : 49154

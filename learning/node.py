@@ -17,8 +17,8 @@ class Node(object):
             config.failure_estimates.std,
             self.total_nodes
         )
-        # Keep track of how many times a node was selected as candidate
-        self.candidate_count = np.zeros(n)
+        # Keep track of how many times a node estimate is updated
+        self.node_count = np.zeros(n)
         self.leader = 1 # Leader index
 
         # Queue messages for sending
