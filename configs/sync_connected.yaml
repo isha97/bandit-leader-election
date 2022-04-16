@@ -29,3 +29,8 @@ v1:
   epsilon: 0.9
   decay: 0.999
   alpha: 0.1
+
+#ports
+port:
+  client_port : 65000
+  replica_base_port : 49153
