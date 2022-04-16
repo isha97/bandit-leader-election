@@ -54,17 +54,19 @@ class RequestMessage():
     def __str__(self):
         return ('RequestMsg {}'.format(self.requestId))
 
-class RequestBroadcastMessage(Message):
-    def __init__(self, id, step=None):
-        """Request broadcasted by the leader
+class RequestBroadcastMessage():
+    def __init__(self, id, requestId):
+        """Reply to the client
 
             id: id of sender
-            step: time step
+            requestId: request id of the request
         """
-        super().__init__(int(id), step)
+        self.sender = id
+        self.requestId = requestId
+
 
     def __str__(self):
-        return ('RequestBroadcastMsg {}'.format(self.sender))
+        return ('RequestBroadcastMsg {} {}'.format(self.sender, self.requestId))
 
 
 class ResponseBroadcastMessage():
@@ -80,17 +82,18 @@ class ResponseBroadcastMessage():
         return ('ResponseBroadcastMsg')
 
 
-class ResponseMessage(Message):
-    def __init__(self, id, step=None):
+class ResponseMessage():
+    def __init__(self, id, requestId):
         """Reply to the client
 
             id: id of sender
-            step: time step
+            requestId: request id of the request
         """
-        super().__init__(int(id), step)
+        self.sender = id
+        self.requestId = requestId
 
     def __str__(self):
-        return ('ResponseMsg {}'.format(self.sender))
+        return ('ResponseMsg {} {}'.format(self.sender, self.requestId))
 
 
 class ConfirmElectionMessage(Message):
