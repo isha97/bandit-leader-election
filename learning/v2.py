@@ -73,7 +73,7 @@ class v2(Node):
                 for port in self.ports:
                     if port != self.my_receving_port:
                         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                        message = str(PingMessage())
+                        message = str(RequestMessage())
                         try:
                             s.connect((host, port))
                             s.send(message.encode('ascii'))
@@ -134,7 +134,7 @@ class v2(Node):
             if data.startswith("ReplyPingMsg"):
                 #TODO : add request id
                 #TODO: decrease the failure probability of the leader
-                message = ReplyPingMessage(data.split(" ")[1])
+                message = ResponseMessage(data.split(" ")[1])
                 lock.acquire()
                 self.message_buffer[message.sender].append(message)
                 lock.release()
@@ -169,7 +169,7 @@ class v2(Node):
             pass
 
         if self.leader == self.id:
-            self.out_queue.append(str(ReplyPingMessage(self.id, 0)))
+            self.out_queue.append(str(ResponseMessage(self.id, 0)))
             #TODO : reply to client
         else:
             # TODO: checing if the node received a ReplyPing from leader for the request id

@@ -43,7 +43,31 @@ class CandidateMessage(Message):
         return('CandidateMsg {} {} {}'.format(self.sender, self.step, self.candidates))
 
 
-class PingMessage():
+class RequestMessage():
+    def __init__(self, requestId):
+        """client expecting reply
+
+            requestId: request Id of the request
+        """
+        self.requestId = int(requestId)
+
+    def __str__(self):
+        return ('RequestMsg {}'.format(self.requestId))
+
+class RequestBroadcastMessage(Message):
+    def __init__(self, id, step=None):
+        """Request broadcasted by the leader
+
+            id: id of sender
+            step: time step
+        """
+        super().__init__(int(id), step)
+
+    def __str__(self):
+        return ('RequestBroadcastMsg {}'.format(self.sender))
+
+
+class ResponseBroadcastMessage():
     def __init__(self):
         """Ping destination expecting reply
 
@@ -53,21 +77,20 @@ class PingMessage():
         pass
 
     def __str__(self):
-        return ('PingMsg')
+        return ('ResponseBroadcastMsg')
 
 
-class ReplyPingMessage(Message):
+class ResponseMessage(Message):
     def __init__(self, id, step=None):
-        """Reply to Ping message
+        """Reply to the client
 
             id: id of sender
             step: time step
         """
         super().__init__(int(id), step)
-        pass
 
     def __str__(self):
-        return ('ReplyPingMsg {}'.format(self.sender))
+        return ('ResponseMsg {}'.format(self.sender))
 
 
 class ConfirmElectionMessage(Message):
