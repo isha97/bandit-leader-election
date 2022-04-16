@@ -13,6 +13,7 @@ import time
 from learning.environment import Environment
 #from learning.node import Node
 from learning.v2 import v2 as Node
+from client import Client
 
 global nodes, message_buffer
 
@@ -42,11 +43,13 @@ if __name__ == "__main__":
         time.sleep(500)
         env.stop_threads()
 
-    if type.startswith('node'):
+    elif type.startswith('node'):
         node_id = type.split("_")[1]
         node = Node(int(node_id), config.num_nodes, config)
         node.run_node()
         time.sleep(500)
         node.stop_node()
 
-    #TODO : ping client
+    elif type == 'client':
+        client = Client(config.num_nodes, config)
+        client.run_client()

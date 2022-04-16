@@ -1,7 +1,7 @@
 num_faulty_nodes: 1 # f
 num_nodes: 4 # >= 3f + 1
 stationary: True
-sleep_sec: 2
+sleep_sec: 60
 node_sleep: .1
 steps: 10000
 min_fail_fraction: 0.5
@@ -29,6 +29,10 @@ v1:
   epsilon: 0.9
   decay: 0.999
   alpha: 0.1
+
+#client
+client:
+  num_requests: 20
 
 #ports
 port:
