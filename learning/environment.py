@@ -2,6 +2,7 @@ import numpy as np
 import time
 import threading
 from sklearn.model_selection import train_test_split
+import logging
 import socket
 from .message import *
 
@@ -32,6 +33,9 @@ class Environment:
         for i in range(n):
             ports.append(49153 + i)
         self.ports = ports
+        logging.basicConfig(filename='logs/env.log', level=logging.DEBUG,
+                            format='%(asctime)s %(levelname)-8s %(message)s',
+                            datefmt='%Y-%m-%d %H:%M:%S')
 
 
     def set_probability(self):
@@ -42,7 +46,8 @@ class Environment:
             self.total_nodes
         )
         self.failure_probability = abs(self.failure_probability)
-        print(self.failure_probability)
+        print("Initial failure probability {}".format(self.failure_probability))
+        logging.info("Initial failure probability {}".format(np.array2string(self.failure_probability)))
 
 
     def fail_nodes(self):
@@ -67,6 +72,7 @@ class Environment:
             # for f in indices:
             #     self.nodes[f].is_failed = True
             # send the failure values to the respective nodes
+            logging.info("failed nodes {}".format(indices))
             host = '127.0.0.1'
             for port in self.ports:
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -76,12 +82,11 @@ class Environment:
                     else:
                         failVal = "False"
                     message = str(FailureMessage(failVal))
-                    print(port)
                     s.connect((host, port))
                     s.send(message.encode('ascii'))
                     s.close()
                 except Exception as msg:
-                    print(msg)
+                    logging.error(str(msg) + " while connecting to {}".format(port))
                     s.close()
             time.sleep(self.sleep_sec)
 

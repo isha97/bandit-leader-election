@@ -9,6 +9,7 @@ from .message import *
 from _thread import *
 import threading
 import socket
+import logging
 
 lock = threading.Lock()
 
@@ -26,7 +27,6 @@ class v2(Node):
         self.decay = config.v1.decay
         self.alpha = config.v1.alpha
         self.ports = [int(config.port.replica_base_port) + i for i in range(n)]
-        print(self.ports, self.ports[id])
         self.my_receving_port = self.ports[id]
         self.message_buffer = {i: {} for i in range(config.num_nodes)}
         self.rng = default_rng()
@@ -36,6 +36,9 @@ class v2(Node):
         self.candidates = []
         self.my_candidates = []
         self.client_port = config.port.client_port
+        logging.basicConfig(filename='logs/node_{}.log'.format(self.id), level=logging.DEBUG,
+                            format='%(asctime)s %(levelname)-8s %(message)s',
+                            datefmt='%Y-%m-%d %H:%M:%S')
 
 
     def _select_leader(self, topn:int = 1):
@@ -68,28 +71,6 @@ class v2(Node):
         return ids
 
 
-    def simulate_client(self):
-        """Extra function to make node behave as the client."""
-        while True:
-            print("Leader ", self.leader)
-            print("id ", self.id)
-            if True:
-                print('Leader sending pings..')
-                host = '127.0.0.1'
-                for port in self.ports:
-                    if port != self.my_receving_port:
-                        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                        message = str(RequestMessage())
-                        try:
-                            s.connect((host, port))
-                            s.send(message.encode('ascii'))
-                            s.close()
-                        except Exception as msg:
-                            print(msg)
-                            s.close()
-            time.sleep(5)
-
-
     def send_to_client(self, message):
         host = '127.0.0.1'
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -98,7 +79,7 @@ class v2(Node):
             s.send(message.encode('ascii'))
             s.close()
         except Exception as msg:
-            print(msg)
+            logging.error("Unable to send the reply to client, reply message : {}".format(message))
             s.close()
 
 
@@ -116,14 +97,13 @@ class v2(Node):
                     # Broadcast to all other nodes
                     for port in self.ports:
                         if port != self.my_receving_port:
-                            print("Sending message {} to node {}".format(message, port))
                             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                             try:
                                 s.connect((host, port))
                                 s.send(message.encode('ascii'))
                                 s.close()
                             except Exception as msg:
-                                print(msg)
+                                logging.error("Unable to send message to port {}".format(port))
                                 s.close()
 
 
@@ -140,8 +120,6 @@ class v2(Node):
             # If there is no message
             if not data:
                 break
-
-            print("Received message {} from node", data)
 
             # If candidate accepts leader role
             if data.startswith("ConfirmElectionMsg"):
@@ -183,6 +161,8 @@ class v2(Node):
     def receive_request_broadcast(self, message):
         """Update leader failure estimate when we get request from leader.
         """
+        logging.info("received request broadcast for request {} from node {}"
+                     .format(message.requestId, message.sender))
         if not self.is_failed:
             lock.acquire()
             self.message_buffer[message.sender].append(message.requestId)
@@ -192,6 +172,8 @@ class v2(Node):
 
     def recieve_request(self, message):
         """Received from the client, check if leader is down"""
+        logging.info("received request request {} from client"
+                     .format(message.requestId))
 
         if self.is_failed:
             pass
@@ -218,6 +200,7 @@ class v2(Node):
             message (Message): Candidate
         """
         self.leader = message.sender
+        logging.info("Updated the current leader to {}".format(self.leader))
         # Clear out candidates now that we have a leader
         self.candidates = []
         self.my_candidates = []
@@ -232,41 +215,14 @@ class v2(Node):
         try:
             receiving_socket.bind((host, port))
         except socket.error as e:
-            print(str(e))
+            logging.error(str(e))
         receiving_socket.listen(5)
         while self.run:
             Client, _ = receiving_socket.accept()
             start_new_thread(self.multi_threaded_client, (Client,))
 
 
-    def recieve_response_message(self):
-        # How to act when a ping is received
-        if self.is_failed:
-            pass
-
-        if self.leader == self.id:
-            self.out_queue.append(str(ResponseMessage(self.id, 0)))
-            #TODO : reply to client
-        else:
-            # TODO: checing if the node received a ReplyPing from leader for the request id
-            if len(self.message_buffer[self.leader]) == 0:
-                time.sleep(self.leader_timeout)
-                # if equal to threshold, create candidates
-                if len(self.message_buffer[self.leader]) == 0:
-                    # Update leader dist.
-                    self.failure_estimates[self.leader] = \
-                        (self.failure_estimates[self.leader] *
-                         self.node_count[self.leader]) / (self.node_count[self.leader] + 1)
-                    ids = self._select_leader(topn=int((self.total_nodes - 1) / 3))
-                    # add candidate message to out queue
-                    for i in range(self.total_nodes):
-                        if i != self.id:
-                            self.out_queue.append(str(CandidateMessage(self.id, 0, list(ids))))
-            else:
-                self.message_buffer[self.leader].clear()
-
-
-    def recieve_candidate_msg(self, message: Message):
+    def recieve_candidate_msg(self, message):
         """On receiving candidates from nodes, update local candidate buffer.
         If we have enough candidates, then update the leader.
 
@@ -327,14 +283,11 @@ class v2(Node):
                 (default=False)
         """
         self.run = True
-        if not client:
-            receive = threading.Thread(target=self.reveive_messages)
-            receive.start()
-            send_message = threading.Thread(target=self.send)
-            send_message.start()
-        else:        
-            client_simulation = threading.Thread(target=self.simulate_client)
-            client_simulation.start()
+        logging.info("Starting node {}".format(self.id))
+        receive = threading.Thread(target=self.reveive_messages)
+        receive.start()
+        send_message = threading.Thread(target=self.send)
+        send_message.start()
 
 
     def stop_node(self):

@@ -1,4 +1,4 @@
-import socket
+import logging
 import time
 
 from learning.message import *
@@ -22,9 +22,13 @@ class Client:
         self.run = True
         self.message_buffer = {}
         self.total_requests = config.client.num_requests
+        logging.basicConfig(filename='client.log', level=logging.DEBUG,
+                            format='%(asctime)s %(levelname)-8s %(message)s',
+                            datefmt='%Y-%m-%d %H:%M:%S')
 
     def recieve_confirm_election_msg(self, message):
         self.leader = message.sender
+        logging.info("Changed leader to {}".format(self.leader))
 
     def recieve_response_msg(self, message):
         requestId = message.requestId
@@ -33,7 +37,6 @@ class Client:
     def multi_threaded_client(self,connection):
         while True:
             data = str(connection.recv(2048).decode('ascii'))
-            print("Received message {} from node", data)
             if data.startswith("ConfirmElectionMsg"):
                 message = ConfirmElectionMessage(data.split(" ")[1], data.split(" ")[2])
                 self.recieve_confirm_election_msg(message)
@@ -51,7 +54,7 @@ class Client:
         try:
             receiving_socket.bind((host, port))
         except socket.error as e:
-            print(str(e))
+            logging.error(str(e))
         receiving_socket.listen(5)
         while self.run:
             Client, address = receiving_socket.accept()
@@ -62,29 +65,29 @@ class Client:
         message = str(RequestMessage(self.request_id))
         port = self.ports[self.leader]
         host = '127.0.0.1'
-        print("Sending message {} to node {}".format(message, port))
+        logging.info("sending request {} to the current leader {}".format(self.request_id, self.leader))
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             s.connect((host, port))
             s.send(message.encode('ascii'))
             s.close()
         except Exception as msg:
-            print(msg)
+            logging.error(str(msg))
             s.close()
 
     def send_request_broadcast(self):
         message = str(RequestMessage(self.request_id))
         host = '127.0.0.1'
+        logging.info("sending request broadcast for request {}".format(self.request_id))
         for port in self.ports:
             if port != self.ports[self.leader]:
-                print("Sending message {} to node {}".format(message, port))
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 try:
                     s.connect((host, port))
                     s.send(message.encode('ascii'))
                     s.close()
                 except Exception as msg:
-                    print(msg)
+                    logging.error(str(msg))
                     s.close()
 
     def run_client(self):
