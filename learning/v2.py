@@ -78,6 +78,7 @@ class v2(Node):
             s.connect((host, self.client_port))
             s.send(message.encode('ascii'))
             s.close()
+            logging.info("sending the reply to client, reply message : {}".format(message))
         except Exception as msg:
             logging.error("Unable to send the reply to client, reply message : {}".format(message))
             s.close()
@@ -165,7 +166,7 @@ class v2(Node):
                      .format(message.requestId, message.sender))
         if not self.is_failed:
             lock.acquire()
-            self.message_buffer[message.sender].append(message.requestId)
+            self.message_buffer[message.sender][message.requestId] = 1
             lock.release()
             self.update_failure_estimate_down(message.sender)
 
@@ -184,12 +185,12 @@ class v2(Node):
             self.send_to_client(str(ResponseMessage(self.id, requestId)))
             self.out_queue.append(str(RequestBroadcastMessage(self.id, requestId)))
         elif requestId not in self.message_buffer[self.leader]:
+            logging.info("oops leader is not responding, starting leader election")
             self.update_failure_estimate_up(self.leader)
             ids = self._select_leader(topn=int((self.total_nodes - 1) / 3))
+            logging.info("selected candidate nodes for leader {}".format(ids))
             # add candidate message to out queue
-            for i in range(self.total_nodes):
-                if i != self.id:
-                    self.out_queue.append(str(CandidateMessage(self.id, 0, list(ids))))
+            self.out_queue.append(str(CandidateMessage(self.id, 0, list(ids))))
 
 
     def recieve_confirm_election_msg(self, message):
@@ -231,22 +232,27 @@ class v2(Node):
             Message (Message): CandidateElection message
         """
         self.candidates.append(message.candidates)
-        self.update_failure_estimate_down(message.sender)
+        logging.info("received new candidate messagefrom {}, message =  {}"
+                     .format(message.sender, message.candidates))
 
         # If we have enough candidates to decide on leader
         if len(self.candidates) > 2*(self.total_nodes - 1)/3 and \
             len(self.my_candidates) > 0:
+            self.update_failure_estimate_down(message.sender)
 
             self.candidates.append(self.my_candidates)
             candidate_np =  np.array(self.candidates).flatten()
             self.leader = np.argmax(np.bincount(candidate_np))
+            logging.info("received enough candidate messages, current new leader would be {}".format(self.leader))
 
             # If we are the leader, Broadcast candidate acceptance if we
             # are not failed
             if self.leader == self.id and not self.is_failed:
+                logging.info("I am the new leader! Broadcasting confirmation to everyone")
                 lock.acquire()
                 self.out_queue.append(str(ConfirmElectionMessage(self.id, 0)))
                 lock.release()
+                self.send_to_client(str(ConfirmElectionMessage(self.id, 0)))
 
 
     def update_failure_estimate_down(self, id: int):
@@ -260,6 +266,7 @@ class v2(Node):
         self.failure_estimates[id] = \
             (self.failure_estimates[id] *
              self.node_count[id]) / (self.node_count[id] + 1)
+        logging.info("current failure estimates {}".format(self.failure_estimates))
 
 
     def update_failure_estimate_up(self, id: int):
@@ -272,6 +279,7 @@ class v2(Node):
         self.failure_estimates[id] = \
             (self.failure_estimates[id] *
              self.node_count[id] + 1) / (self.node_count[id] + 1)
+        logging.info("current failure estimates {}".format(self.failure_estimates))
 
 
     def run_node(self, client: bool = False):

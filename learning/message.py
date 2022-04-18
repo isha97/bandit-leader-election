@@ -61,8 +61,8 @@ class RequestBroadcastMessage():
             id: id of sender
             requestId: request id of the request
         """
-        self.sender = id
-        self.requestId = requestId
+        self.sender = int(id)
+        self.requestId = int(requestId)
 
 
     def __str__(self):
@@ -89,8 +89,8 @@ class ResponseMessage():
             id: id of sender
             requestId: request id of the request
         """
-        self.sender = id
-        self.requestId = requestId
+        self.sender = int(id)
+        self.requestId = int(requestId)
 
     def __str__(self):
         return ('ResponseMsg {} {}'.format(self.sender, self.requestId))

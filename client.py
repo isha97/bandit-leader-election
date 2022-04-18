@@ -22,7 +22,7 @@ class Client:
         self.run = True
         self.message_buffer = {}
         self.total_requests = config.client.num_requests
-        logging.basicConfig(filename='client.log', level=logging.DEBUG,
+        logging.basicConfig(filename='logs/client.log', level=logging.DEBUG,
                             format='%(asctime)s %(levelname)-8s %(message)s',
                             datefmt='%Y-%m-%d %H:%M:%S')
 
@@ -95,9 +95,9 @@ class Client:
         receive.start()
         for i in range(self.total_requests):
             self.send_request()
-            time.sleep(10)
+            time.sleep(20)
             if self.request_id in self.message_buffer.keys():
                 del self.message_buffer[self.request_id]
             else:
                 self.send_request_broadcast()
-            time.sleep(10)
+            time.sleep(60)

@@ -27,7 +27,7 @@ class Environment:
         self.min_fail_fraction = config.min_fail_fraction
 
         self.run = False
-        self.set_probability()
+
 
         ports = []
         for i in range(n):
@@ -36,6 +36,7 @@ class Environment:
         logging.basicConfig(filename='logs/env.log', level=logging.DEBUG,
                             format='%(asctime)s %(levelname)-8s %(message)s',
                             datefmt='%Y-%m-%d %H:%M:%S')
+        self.set_probability()
 
 
     def set_probability(self):
@@ -46,7 +47,6 @@ class Environment:
             self.total_nodes
         )
         self.failure_probability = abs(self.failure_probability)
-        print("Initial failure probability {}".format(self.failure_probability))
         logging.info("Initial failure probability {}".format(np.array2string(self.failure_probability)))
 
 
