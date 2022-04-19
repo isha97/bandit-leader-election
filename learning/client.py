@@ -16,15 +16,19 @@ class Client:
         for i in range(n):
             ports.append(config.port.replica_base_port + i)
         self.ports = ports
-        self.client_port = config.port.replica_base_port
+        self.client_port = int(config.port.client_port)
         self.request_id = 0
         self.leader = 0
         self.run = True
         self.message_buffer = {}
         self.total_requests = config.client.num_requests
-        logging.basicConfig(filename='logs/client.log', level=logging.DEBUG,
+        logging.basicConfig(level=logging.DEBUG,
                             format='%(asctime)s %(levelname)-8s %(message)s',
-                            datefmt='%Y-%m-%d %H:%M:%S')
+                            datefmt='%Y-%m-%d %H:%M:%S', handlers=[
+                                logging.FileHandler("logs/client.log"),
+                                logging.StreamHandler()
+                                ]
+        )
 
     def recieve_confirm_election_msg(self, message):
         self.leader = message.sender

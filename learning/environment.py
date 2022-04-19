@@ -25,17 +25,18 @@ class Environment:
         self.init_prob = config.fail_prob.init
         self.update_prob = config.fail_prob.update
         self.min_fail_fraction = config.min_fail_fraction
+        self.replica_base_port = config.port.replica_base_port
 
         self.run = False
+        self.ports = [int(self.replica_base_port) + i for i in range(n)]
 
-
-        ports = []
-        for i in range(n):
-            ports.append(49153 + i)
-        self.ports = ports
-        logging.basicConfig(filename='logs/env.log', level=logging.DEBUG,
+        logging.basicConfig(level=logging.DEBUG,
                             format='%(asctime)s %(levelname)-8s %(message)s',
-                            datefmt='%Y-%m-%d %H:%M:%S')
+                            datefmt='%Y-%m-%d %H:%M:%S', handlers=[
+                                logging.FileHandler("logs/env.log"),
+                                logging.StreamHandler()
+                                ]
+        )
         self.set_probability()
 
 
@@ -77,7 +78,7 @@ class Environment:
             for port in self.ports:
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 try:
-                    if port - 49153 in indices:
+                    if port - self.replica_base_port in indices:
                         failVal = "True"
                     else:
                         failVal = "False"

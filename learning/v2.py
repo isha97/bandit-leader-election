@@ -36,9 +36,13 @@ class v2(Node):
         self.candidates = []
         self.my_candidates = []
         self.client_port = config.port.client_port
-        logging.basicConfig(filename='logs/node_{}.log'.format(self.id), level=logging.DEBUG,
+        logging.basicConfig(level=logging.DEBUG,
                             format='%(asctime)s %(levelname)-8s %(message)s',
-                            datefmt='%Y-%m-%d %H:%M:%S')
+                            datefmt='%Y-%m-%d %H:%M:%S', handlers=[
+                                logging.FileHandler('logs/node_{}.log'.format(self.id)),
+                                logging.StreamHandler()
+                                ]
+        )
 
 
     def _select_leader(self, topn:int = 1):
