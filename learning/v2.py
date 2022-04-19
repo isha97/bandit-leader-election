@@ -1,4 +1,3 @@
-from this import d
 import time
 
 import numpy as np
@@ -23,26 +22,47 @@ class v2(Node):
             config: config parameters
         """
         super().__init__(id, n, config)
+
+        # Node properties
+        self.is_failed = False
+
+        # Bandit properties
         self.epsilon = config.v1.epsilon
         self.decay = config.v1.decay
         self.alpha = config.v1.alpha
-        self.ports = [int(config.port.replica_base_port) + i for i in range(n)]
-        self.my_receving_port = self.ports[id]
-        self.message_buffer = {i: {} for i in range(config.num_nodes)}
-        self.rng = default_rng()
 
-        self.leader_timeout = config.v1.leader_timeout
-        self.leader_timeout_cnt = 0
+        # Set failure estimate of all nodes (noisy)
+        self.failure_estimates = np.random.normal(
+            config.failure_estimates.mean,
+            config.failure_estimates.std,
+            self.total_nodes
+        )
+
+        # Messages buffer and out queue
+        self.out_queue = []
+        self.message_buffer = {i: {} for i in range(config.num_nodes)}
+
+        # Keep track of how many times a node estimate is updated
+        self.node_count = np.ones(n)
+
+        # Node port
+        self.my_receving_port = self.ports[id]
+
+        # Candidate buffers
         self.candidates = []
         self.my_candidates = []
-        self.client_port = config.port.client_port
+
+        self.rng = default_rng()
+
         logging.basicConfig(level=logging.DEBUG,
-                            format='%(asctime)s %(levelname)-8s %(message)s',
-                            datefmt='%Y-%m-%d %H:%M:%S', handlers=[
-                                logging.FileHandler('logs/node_{}.log'.format(self.id)),
-                                logging.StreamHandler()
-                                ]
+            format='[%(asctime)s %(levelname)-8s %(funcName)s()] %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S', handlers=[
+                logging.FileHandler('logs/node_{}.log'.format(self.id)),
+                logging.StreamHandler()
+                ]
         )
+
+        logging.info("Initial failure estimates {}".format(self.failure_estimates))
 
 
     def _select_leader(self, topn:int = 1):
@@ -76,13 +96,14 @@ class v2(Node):
 
 
     def send_to_client(self, message):
+        """Send message only to client"""
         host = '127.0.0.1'
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             s.connect((host, self.client_port))
             s.send(message.encode('ascii'))
             s.close()
-            logging.info("sending the reply to client, reply message : {}".format(message))
+            logging.info("Replied to client, message : {}".format(message))
         except Exception as msg:
             logging.error("Unable to send the reply to client, reply message : {}".format(message))
             s.close()
@@ -99,8 +120,10 @@ class v2(Node):
                 # clear our out_buffer
                 while len(self.out_queue) > 0:
                     message = self.out_queue.pop()
+                    logging.info("BCAST message : {}".format(message))
                     # Broadcast to all other nodes
-                    for port in self.ports:
+                    receiver = self.ports + [self.client_port]
+                    for port in receiver:
                         if port != self.my_receving_port:
                             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                             try:
@@ -108,8 +131,9 @@ class v2(Node):
                                 s.send(message.encode('ascii'))
                                 s.close()
                             except Exception as msg:
-                                logging.error("Unable to send message to port {}".format(port))
+                                logging.error("Unable to send message {} to port {}".format(msg, port))
                                 s.close()
+            time.sleep(1)
 
 
     def multi_threaded_client(self, connection):
@@ -126,79 +150,87 @@ class v2(Node):
             if not data:
                 break
 
-            # If candidate accepts leader role
-            if data.startswith("ConfirmElectionMsg"):
-                message = ConfirmElectionMessage(data.split(" ")[1], data.split(" ")[2])
-                self.recieve_confirm_election_msg(message)
+            # Parse data, construct message 
+            message = parse_and_construct(data)
 
-            # If we receive candidates from another node, update local candidate list 
-            elif data.startswith("CandidateMsg"):
-                message = CandidateMessage(data.split(" ")[1], data.split(" ")[2], data.split(" ")[3])
-                message.parse_candidates()
-                self.recieve_candidate_msg(message)
+            if not self.is_failed:
+                # If candidate accepts leader role
+                if isinstance(message, ConfirmElectionMessage):
+                    self.recieve_confirm_election_msg(message)
 
-            # If we receive request from client (leader is down!)
-            elif data.startswith("RequestMsg"):
-                message = RequestMessage(data.split(" ")[1])
-                self.recieve_request(message)
+                # If we receive candidates from another node, update local candidate list 
+                elif isinstance(message, ShareCandidatesMessage):
+                    self.recieve_candidate_msg(message)
 
-            # If we receive request from leader, send response
-            elif data.startswith("RequestBroadcastMsg"):
-                message = RequestBroadcastMessage(data.split(" ")[1], data.split(" ")[2])
-                self.receive_request_broadcast(message)
+                # If we receive request from client
+                # (either we are leader or leader is down!)
+                elif isinstance(message, ClientRequestMessage):
+                    self.receive_request(message)
+
+                # If we receive request from leader, send response
+                elif isinstance(message, RequestBroadcastMessage):
+                    self.receive_request_broadcast(message)
 
             # If the environement fails us!
-            elif data.startswith("FailureMsg"):
-                message = FailureMessage(data.split(" ")[1])
-                lock.acquire()
+            if isinstance(message, FailureMessage):
                 if message.failureVal == "True":
-                    self.is_failed = False
-                else:
+                    if not self.is_failed:
+                        self.update_failure_estimate_up(self.id)
                     self.is_failed = True
-                lock.release()
-                self.update_failure_estimate_up(self.id)
+                else:
+                    self.is_failed = False
+                logging.info("FAILED STATUS : {}".format(self.is_failed))
 
             else:
                 continue
+
         connection.close()
 
 
     def receive_request_broadcast(self, message):
-        """Update leader failure estimate when we get request from leader.
-        """
-        logging.info("received request broadcast for request {} from node {}"
-                     .format(message.requestId, message.sender))
-        if not self.is_failed:
-            lock.acquire()
-            self.message_buffer[message.sender][message.requestId] = 1
-            lock.release()
-            self.update_failure_estimate_down(message.sender)
+        """Respond to request broadcast from leader if not failed."""
+        logging.info("Request id {} from node {}"
+                    .format(message.requestId, message.sender))
+        if self.leader != message.leader:
+            # either we failed or the sender failed!
+            # TODO: Compare timestamp
+            self.leader == message.leader
+
+        lock.acquire()
+        self.message_buffer[message.sender][message.requestId] = 1
+        lock.release()
+        self.update_failure_estimate_down(message.sender)
 
 
-    def recieve_request(self, message):
-        """Received from the client, check if leader is down"""
-        logging.info("received request request {} from client"
+    def receive_request(self, message):
+        """Received from the client, if we are the leader, """
+        logging.info("From client, message : {}"
                      .format(message.requestId))
 
         if self.is_failed:
             pass
-        
+
         requestId = message.requestId
 
         if self.leader == self.id:
-            self.send_to_client(str(ResponseMessage(self.id, requestId)))
-            self.out_queue.append(str(RequestBroadcastMessage(self.id, requestId)))
+            self.send_to_client(str(ResponseMessage(self.id, self.leader, 0, requestId)))
+            lock.acquire()
+            self.out_queue.append(str(RequestBroadcastMessage(self.id, self.leader, 0, requestId)))
+            lock.release()
         elif requestId not in self.message_buffer[self.leader]:
-            logging.info("oops leader is not responding, starting leader election")
+            logging.info("Oops, leader is not responding. Starting leader election...")
             self.update_failure_estimate_up(self.leader)
             ids = self._select_leader(topn=int((self.total_nodes - 1) / 3))
-            logging.info("selected candidate nodes for leader {}".format(ids))
+            logging.info("Selected candidate nodes {} for leader".format(ids))
             # add candidate message to out queue
-            self.out_queue.append(str(CandidateMessage(self.id, 0, list(ids))))
+            lock.acquire()
+            self.out_queue.append(str(ShareCandidatesMessage(self.id, self.leader, 0, list(ids))))
+            lock.release()
 
 
     def recieve_confirm_election_msg(self, message):
         """If candidate accepts leader role and clears candidates.
+        Update new leader failure prob. 
 
         Args
         ----
@@ -212,7 +244,7 @@ class v2(Node):
         self.update_failure_estimate_down(message.sender)
 
 
-    def reveive_messages(self):
+    def receive_messages(self):
         """Listener that starts a new thread and reads messages from port"""
         host = '127.0.0.1'
         port = self.my_receving_port
@@ -224,39 +256,48 @@ class v2(Node):
         receiving_socket.listen(5)
         while self.run:
             Client, _ = receiving_socket.accept()
+            Client.settimeout(60)
             start_new_thread(self.multi_threaded_client, (Client,))
 
 
     def recieve_candidate_msg(self, message):
         """On receiving candidates from nodes, update local candidate buffer.
-        If we have enough candidates, then update the leader.
+        If we have enough candidates, then update the leader. Update sender
+        failure prob.
+
+        Broadcast ConfirmElection if we are new leader and not failed.
 
         Args
         ----
             Message (Message): CandidateElection message
         """
+        if self.leader != message.leader:
+            # either we failed or the sender failed!
+            # TODO: Compare timestamp
+            self.leader == message.leader
+
         self.candidates.append(message.candidates)
-        logging.info("received new candidate messagefrom {}, message =  {}"
+        self.update_failure_estimate_down(message.sender)
+        logging.info("New candidate message from {}, message : {}"
                      .format(message.sender, message.candidates))
 
         # If we have enough candidates to decide on leader
         if len(self.candidates) > 2*(self.total_nodes - 1)/3 and \
             len(self.my_candidates) > 0:
-            self.update_failure_estimate_down(message.sender)
 
             self.candidates.append(self.my_candidates)
-            candidate_np =  np.array(self.candidates).flatten()
+            candidate_np = np.array(self.candidates).flatten()
             self.leader = np.argmax(np.bincount(candidate_np))
-            logging.info("received enough candidate messages, current new leader would be {}".format(self.leader))
+            logging.info("Enough candidate messages, new leader is {}".format(self.leader))
 
-            # If we are the leader, Broadcast candidate acceptance if we
+            # If we are the leader, broadcast candidate acceptance if we
             # are not failed
             if self.leader == self.id and not self.is_failed:
                 logging.info("I am the new leader! Broadcasting confirmation to everyone")
                 lock.acquire()
-                self.out_queue.append(str(ConfirmElectionMessage(self.id, 0)))
+                self.out_queue.append(str(ConfirmElectionMessage(self.id, self.leader, 0)))
                 lock.release()
-                self.send_to_client(str(ConfirmElectionMessage(self.id, 0)))
+                self.send_to_client(str(ConfirmElectionMessage(self.id, self.leader, 0)))
 
 
     def update_failure_estimate_down(self, id: int):
@@ -268,9 +309,9 @@ class v2(Node):
             id (int): Node ID to update.
         """
         self.failure_estimates[id] = \
-            (self.failure_estimates[id] *
-             self.node_count[id]) / (self.node_count[id] + 1)
-        logging.info("current failure estimates {}".format(self.failure_estimates))
+            (self.failure_estimates[id] * self.node_count[id]) / (self.node_count[id] + 1)
+        self.node_count[id] += 1
+        logging.info("@ node {} : {}".format(id, self.failure_estimates))
 
 
     def update_failure_estimate_up(self, id: int):
@@ -281,22 +322,16 @@ class v2(Node):
             id (int): Node ID to update.
         """
         self.failure_estimates[id] = \
-            (self.failure_estimates[id] *
-             self.node_count[id] + 1) / (self.node_count[id] + 1)
-        logging.info("current failure estimates {}".format(self.failure_estimates))
+            (self.failure_estimates[id] * self.node_count[id] + 1) / (self.node_count[id] + 1)
+        self.node_count[id] += 1
+        logging.info("@ node {} : {}".format(id, self.failure_estimates))
 
 
-    def run_node(self, client: bool = False):
-        """Run threads to send and receive messages
-
-        Args
-        ----
-            client (bool): If node should behave as client, set client=True.
-                (default=False)
-        """
+    def run_node(self):
+        """Run threads to send and receive messages"""
         self.run = True
         logging.info("Starting node {}".format(self.id))
-        receive = threading.Thread(target=self.reveive_messages)
+        receive = threading.Thread(target=self.receive_messages)
         receive.start()
         send_message = threading.Thread(target=self.send)
         send_message.start()
@@ -304,4 +339,5 @@ class v2(Node):
 
     def stop_node(self):
         """Terminate all threads of the node."""
+        logging.info("Stopping node {}".format(self.id))
         self.run = False

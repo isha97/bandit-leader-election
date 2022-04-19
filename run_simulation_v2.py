@@ -51,5 +51,5 @@ if __name__ == "__main__":
         node.stop_node()
 
     elif type == 'client':
-        client = Client(config.num_nodes, config)
-        client.run_client()
+        client = Client(-1, config.num_nodes, config)
+        client.run_node()

@@ -1,5 +1,3 @@
-import numpy as np
-
 class Node(object):
     def __init__(self, id, n, config):
         """Initialize node
@@ -9,38 +7,31 @@ class Node(object):
             config: config parameters
         """ 
         self.id = id
-        self.is_failed = False
         self.total_nodes = n
-        # Set failure estimate of all nodes (noisy)
-        self.failure_estimates = np.random.normal(
-            config.failure_estimates.mean,
-            config.failure_estimates.std,
-            self.total_nodes
-        )
-        # Keep track of how many times a node estimate is updated
-        self.node_count = np.zeros(n)
-        self.leader = 1 # Leader index
+        self.ports = [int(config.port.replica_base_port) + i for i in range(n)]
 
-        # Queue messages for sending
-        self.out_queue = []
+        # client port
+        self.client_port = config.port.client_port
+
+        # Initial Leader ID
+        self.leader = 0
 
 
-    def send(self, message_buffer):
-        """Send message to other nodes
-
-            message_buffer: (dict) key = idx of receiver, value = message
-            step: current timestep (reconnecting nodes to ignore stale messages)
-
-        Returns
-        -------
-            messages (dict): dict with keys as ids and values as messages
-        """
+    def send(self):
+        """Send messages"""
         pass
 
 
-    def recieve(self, messages, step):
-        """Recieve messages from other nodes
-        
-            messages: list of messages to node
-        """
+    def receive_messages(self):
+        """Receive messages from other nodes"""
+        pass
+
+
+    def run_node(self):
+        """Run threads to send and receive messages"""
+        pass
+
+
+    def stop_node(self):
+        """Terminate all threads of the node."""
         pass

@@ -6,7 +6,7 @@ node_sleep: .1
 steps: 10000
 min_fail_fraction: 0.5
 
-# Failure prob set by environment 
+# Failure prob set by environment
 fail_prob:
   # Initial prob.
   init:
@@ -25,9 +25,8 @@ failure_estimates:
 
 # Simpliest leader election
 v1:
-  leader_timeout: 6
-  epsilon: 0.9
-  decay: 0.999
+  epsilon: 0.1
+  decay: 0.99
   alpha: 0.1
 
 #client

@@ -31,11 +31,11 @@ class Environment:
         self.ports = [int(self.replica_base_port) + i for i in range(n)]
 
         logging.basicConfig(level=logging.DEBUG,
-                            format='%(asctime)s %(levelname)-8s %(message)s',
-                            datefmt='%Y-%m-%d %H:%M:%S', handlers=[
-                                logging.FileHandler("logs/env.log"),
-                                logging.StreamHandler()
-                                ]
+            format='[%(asctime)s %(levelname)-8s %(funcName)s()] %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S', handlers=[
+                logging.FileHandler("logs/env.log"),
+                logging.StreamHandler()
+                ]
         )
         self.set_probability()
 
@@ -48,7 +48,9 @@ class Environment:
             self.total_nodes
         )
         self.failure_probability = abs(self.failure_probability)
-        logging.info("Initial failure probability {}".format(np.array2string(self.failure_probability)))
+        logging.info("Initial failure probability {}".format(
+            np.array2string(self.failure_probability)
+            ))
 
 
     def fail_nodes(self):
@@ -67,11 +69,7 @@ class Environment:
                     self.max_failed_nodes,
                     replace=False
                 )
-            # Acquire lock and update all node status
-            # for i in range(len(self.nodes)):
-            #     self.nodes[i].is_failed = False
-            # for f in indices:
-            #     self.nodes[f].is_failed = True
+
             # send the failure values to the respective nodes
             logging.info("failed nodes {}".format(indices))
             host = '127.0.0.1'
@@ -82,7 +80,7 @@ class Environment:
                         failVal = "True"
                     else:
                         failVal = "False"
-                    message = str(FailureMessage(failVal))
+                    message = str(FailureMessage(-2, 0, 0, failVal))
                     s.connect((host, port))
                     s.send(message.encode('ascii'))
                     s.close()
