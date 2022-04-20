@@ -31,6 +31,7 @@ class v2(Node):
 
         # Node properties
         self.is_failed = False
+        self.previous_fail_status = False
 
         # Bandit properties
         self.epsilon = config.v1.epsilon
@@ -47,6 +48,7 @@ class v2(Node):
         # Messages buffer and out queue
         self.out_queue = []
         self.message_buffer = {i: {} for i in range(config.num_nodes)}
+        self.curret_leader_message = None
 
         # Keep track of how many times a node estimate is updated
         self.node_count = np.ones(n)
@@ -187,19 +189,51 @@ class v2(Node):
 
             # If the environement fails us!
             if isinstance(message, FailureMessage):
-                if message.failureVal == "True":
-                    if not self.is_failed:
-                        self.update_failure_estimate_up(self.id)
-                    self.is_failed = True
-                else:
-                    # TODO : How to update the leader when a node joins
-                    self.is_failed = False
-                logging.info("FAILED STATUS : {}".format(self.is_failed))
+                self.receive_state_change_msg(message)
+
+            if isinstance(message, CurrentLeaderMessage):
+                self.receive_current_leader_message(message)
 
             else:
                 continue
 
         connection.close()
+
+    def receive_current_leader_message(self, message):
+        self.curret_leader_message = message.leader
+        lock.acquire()
+        self.leader = message.leader
+        lock.release()
+
+    def send_current_leader_request(self):
+        message = str(GetLeaderMessage(self.id, self.leader, 0))
+        host = '127.0.0.1'
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            s.connect((host, self.client_port))
+            s.send(message.encode('ascii'))
+            s.close()
+            logging.info("Sending the request for current leader to client : {}".format(message))
+        except Exception as msg:
+            logging.error("Unable to send the request for current leader to client {}".format(message))
+            s.close()
+
+
+    def receive_state_change_msg(self, message):
+        self.previous_fail_status = self.is_failed
+        if message.failureVal == "True":
+            if not self.is_failed:
+                self.update_failure_estimate_up(self.id)
+            self.is_failed = True
+        else:
+            # TODO : How to update the leader when a node joins
+            if self.previous_fail_status == True:
+                self.send_current_leader_request()
+                while self.curret_leader_message is None:
+                    time.sleep(2)
+                self.curret_leader_message = None
+            self.is_failed = False
+        logging.info("FAILED STATUS : {}".format(self.is_failed))
 
 
     def receive_request_broadcast(self, message):

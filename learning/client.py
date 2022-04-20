@@ -44,6 +44,21 @@ class Client(Node):
         requestId = message.requestId
         self.message_buffer[requestId] = 1
 
+    def send_current_leader(self, message):
+        host = '127.0.0.1'
+        port = self.ports[message.sender]
+        msg = str(CurrentLeaderMessage(self.client_port, self.leader, 0))
+        logging.info("Sending current leader {} to node {}".format(self.leader, message.sender))
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            s.connect((host, port))
+            s.send(msg.encode('ascii'))
+            s.close()
+        except Exception as ex:
+            logging.error(str(ex))
+            s.close()
+
+
 
     def multi_threaded_client(self, connection):
         """Read message and perform action."""
@@ -58,8 +73,11 @@ class Client(Node):
             if isinstance(message, ConfirmElectionMessage):
                 self.recieve_confirm_election_msg(message)
 
-            if isinstance(message, ResponseMessage):
+            elif isinstance(message, ResponseMessage):
                 self.recieve_response_msg(message)
+
+            elif isinstance(message, GetLeaderMessage):
+                self.send_current_leader(message)
 
         connection.close()
 

@@ -33,8 +33,8 @@ class ShareEstimatesMessage(Message):
     def __str__(self):
         return('ShareEstimatesMsg {} {} {} {}'.format(
             self.sender,
-            self.stamp,
             self.leader,
+            self.stamp,
             self.estimates
             ))
 
@@ -58,8 +58,8 @@ class ShareCandidatesMessage(Message):
     def __str__(self):
         return('ShareCandidatesMsg {} {} {} {}'.format(
             self.sender,
-            self.stamp,
             self.leader,
+            self.stamp,
             self.candidates
             ))
 
@@ -79,8 +79,8 @@ class ClientRequestMessage(Message):
     def __str__(self):
         return ('ClientRequestMsg {} {} {} {}'.format(
             self.sender,
-            self.stamp,
             self.leader,
+            self.stamp,
             self.requestId
             ))
 
@@ -100,8 +100,8 @@ class RequestBroadcastMessage(Message):
     def __str__(self):
         return ('RequestBroadcastMsg {} {} {} {}'.format(
             self.sender,
-            self.stamp,
             self.leader,
+            self.stamp,
             self.requestId
             ))
 
@@ -141,12 +141,12 @@ class ConfirmElectionMessage(Message):
     def __str__(self):
         return('ConfirmElectionMsg {} {} {}'.format(
             self.sender,
-            self.stamp,
-            self.leader
+            self.leader,
+            self.stamp
             ))
 
 
-class NewLeaderMessage(Message):
+class CurrentLeaderMessage(Message):
     def __init__(self, id, leader, stamp):
         """Broadcast a new leader selected by a node
 
@@ -158,10 +158,28 @@ class NewLeaderMessage(Message):
         pass
 
     def __str__(self):
-        return('NewLeaderMsg {} {} {}'.format(
+        return('CurrentLeaderMsg {} {} {}'.format(
             self.sender,
-            self.stamp,
-            self.leader
+            self.leader,
+            self.stamp
+            ))
+
+class GetLeaderMessage(Message):
+    def __init__(self, id, leader, stamp):
+        """Broadcast a new leader selected by a node
+
+            id: id of sender
+            leader: id of leader
+            stamp: time stamp
+        """
+        super().__init__(id, leader, stamp)
+        pass
+
+    def __str__(self):
+        return('GetLeaderMsg {} {} {}'.format(
+            self.sender,
+            self.leader,
+            self.stamp
             ))
 
 
@@ -218,6 +236,14 @@ def parse_and_construct(data):
         data = data.split(" ")
         message = ShareEstimatesMessage(data[1], data[2], data[3], data[4])
         message.parse_estimates()
+
+    elif data.startswith("GetLeaderMsg"):
+        data = data.split(" ")
+        message = GetLeaderMessage(data[1], data[2], data[3])
+
+    elif data.startswith("CurrentLeaderMsg"):
+        data = data.split(" ")
+        message = CurrentLeaderMessage(data[1], data[2], data[3])
 
     else:
         assert False, 'Error parsing message, received unknown {}!'.format(data)
