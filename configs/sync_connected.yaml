@@ -1,10 +1,11 @@
 num_faulty_nodes: 1 # f
 num_nodes: 4 # >= 3f + 1
 stationary: True
-sleep_sec: 60
+sleep_sec: 15
 node_sleep: .1
 steps: 10000
 min_fail_fraction: 0.5
+election_algorithm : 'Deterministic'
 
 # Failure prob set by environment
 fail_prob:
@@ -35,5 +36,5 @@ client:
 
 #ports
 port:
-  client_port : 65000
+  client_port : 60000
   replica_base_port : 49154

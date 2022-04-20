@@ -121,8 +121,8 @@ class ResponseMessage(Message):
     def __str__(self):
         return ('ResponseMsg {} {} {} {}'.format(
             self.sender,
-            self.stamp,
             self.leader,
+            self.stamp,
             self.requestId
             ))
 
@@ -138,12 +138,31 @@ class ConfirmElectionMessage(Message):
         super().__init__(id, leader, stamp)
         pass
 
-        def __str__(self):
-            return('ConfirmElectionMsg {} {} {}'.format(
-                self.sender,
-                self.stamp,
-                self.leader
-                ))
+    def __str__(self):
+        return('ConfirmElectionMsg {} {} {}'.format(
+            self.sender,
+            self.stamp,
+            self.leader
+            ))
+
+
+class NewLeaderMessage(Message):
+    def __init__(self, id, leader, stamp):
+        """Broadcast a new leader selected by a node
+
+            id: id of sender
+            leader: id of leader
+            stamp: time stamp
+        """
+        super().__init__(id, leader, stamp)
+        pass
+
+    def __str__(self):
+        return('NewLeaderMsg {} {} {}'.format(
+            self.sender,
+            self.stamp,
+            self.leader
+            ))
 
 
 class FailureMessage(Message):
