@@ -9,18 +9,19 @@ from .message import *
 lock = threading.Lock()
 
 class Environment:
-    def __init__(self, n, sleep_sec, config):
+    def __init__(self, n, config):
         """Initialize environment
 
             n: total number of nodes
-            sleep_sec: Sleep time between updating failure probability
+            fail_nodes_update: Sleep time between updating failure probability
             nodes: List of node objects
             config: config parameters
         """
         self.total_nodes = n
         self.failure_probability = np.zeros(n)
-        self.max_failed_nodes = int((n - 1)/3)
-        self.sleep_sec = sleep_sec
+        self.max_failed_nodes = int((n - 1)/2)
+        self.fail_nodes_update = config.fail_nodes_update
+        self.failure_update = config.failure_update
         self.stationary = config.stationary
         self.init_prob = config.fail_prob.init
         self.update_prob = config.fail_prob.update
@@ -48,7 +49,7 @@ class Environment:
             self.total_nodes
         )
         self.failure_probability = abs(self.failure_probability)
-        self.failure_probability[1] = 0.6
+        self.failure_probability[0] = 0.6
         logging.info("Initial failure probability {}".format(
             np.array2string(self.failure_probability)
             ))
@@ -81,14 +82,14 @@ class Environment:
                         failVal = "True"
                     else:
                         failVal = "False"
-                    message = str(FailureMessage(-2, 0, 0, failVal))
+                    message = str(FailureMessage(-2, 0, time.time()*100, failVal))
                     s.connect((host, port))
                     s.send(message.encode('ascii'))
                     s.close()
                 except Exception as msg:
                     logging.error(str(msg) + " while connecting to {}".format(port))
                     s.close()
-            time.sleep(self.sleep_sec)
+            time.sleep(self.fail_nodes_update)
 
 
     def update_probability(self):
@@ -121,7 +122,7 @@ class Environment:
                                                 self.failure_probability[increase]
                                                 )
 
-                time.sleep(self.sleep_sec*3)
+                time.sleep(self.failure_update)
         else:
             # Do not change failure prob in stationary case
             pass

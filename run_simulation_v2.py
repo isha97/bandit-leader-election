@@ -38,7 +38,7 @@ if __name__ == "__main__":
 
     type = args.type
     if type == 'env':
-        env = Environment(config.num_nodes, config.sleep_sec, config)
+        env = Environment(config.num_nodes, config)
         env.run_threads()
         time.sleep(args.duration)
         env.stop_threads()

@@ -7,6 +7,7 @@ from _thread import *
 import socket
 import threading
 
+
 class Client(Node):
     def __init__(self, id, n, config):
         """Initialize client node
@@ -20,7 +21,8 @@ class Client(Node):
         self.request_id = 0
         self.run = True
         self.message_buffer = {}
-        self.total_requests = config.client.num_requests
+        self.num_leader_election = 0 # total number of times the leader election happens
+        self.num_requests = config.client.num_requests
         logging.basicConfig(level=logging.DEBUG,
                             format='[%(asctime)s %(levelname)-8s %(funcName)s() %(message)s',
                             datefmt='%Y-%m-%d %H:%M:%S', handlers=[
@@ -32,32 +34,20 @@ class Client(Node):
 
     def recieve_confirm_election_msg(self, message):
         """Receive message of new leader"""
-        self.leader = message.sender
-        logging.info("Changed leader to {}".format(self.leader))
+        self.leader['id'] = message.sender
+        self.leader['stamp'] = message.stamp
+        logging.info("Changed leader to {} @ {}".format(self.leader['id'], self.leader['stamp']))
 
 
     def recieve_response_msg(self, message):
         """Receive response for request."""
-        if self.leader != message.leader:
-            self.leader = message.leader
-            logging.info("Changed leader to {}".format(self.leader))
+        if self.leader['id'] != message.leader:
+            if self.leader['stamp'] < message.stamp:
+                self.leader['id'] = message.sender
+                self.leader['stamp'] = message.stamp
+                logging.info("Changed leader to {} @ {}".format(self.leader['id'], self.leader['stamp']))
         requestId = message.requestId
         self.message_buffer[requestId] = 1
-
-    def send_current_leader(self, message):
-        host = '127.0.0.1'
-        port = self.ports[message.sender]
-        msg = str(CurrentLeaderMessage(self.client_port, self.leader, 0))
-        logging.info("Sending current leader {} to node {}".format(self.leader, message.sender))
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        try:
-            s.connect((host, port))
-            s.send(msg.encode('ascii'))
-            s.close()
-        except Exception as ex:
-            logging.error(str(ex))
-            s.close()
-
 
 
     def multi_threaded_client(self, connection):
@@ -75,9 +65,6 @@ class Client(Node):
 
             elif isinstance(message, ResponseMessage):
                 self.recieve_response_msg(message)
-
-            elif isinstance(message, GetLeaderMessage):
-                self.send_current_leader(message)
 
         connection.close()
 
@@ -100,10 +87,10 @@ class Client(Node):
     def send_request(self):
         """Send client requests"""
         self.request_id += 1
-        message = str(ClientRequestMessage(-1, self.leader, 0, self.request_id))
-        port = self.ports[self.leader]
+        message = str(ClientRequestMessage(-1, self.leader['id'], time.time()*100, self.request_id))
+        port = self.ports[self.leader['id']]
         host = '127.0.0.1'
-        logging.info("Sending request {} to the current leader {}".format(self.request_id, self.leader))
+        logging.info("Sending request {} to the current leader {}".format(self.request_id, self.leader['id']))
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             s.connect((host, port))
@@ -116,11 +103,11 @@ class Client(Node):
 
     def send_request_broadcast(self):
         """If leader is not responding, broadcast request"""
-        message = str(ClientRequestMessage(-1, self.leader, 0, self.request_id))
+        message = str(ClientRequestMessage(-1, self.leader['id'], time.time()*100, self.request_id))
         host = '127.0.0.1'
         logging.info("Sending request broadcast for request {}".format(self.request_id))
         for port in self.ports:
-            if port != self.ports[self.leader]:
+            if port != self.ports[self.leader['id']]:
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 try:
                     s.connect((host, port))
@@ -135,11 +122,25 @@ class Client(Node):
         """Run send, receive threads"""
         receive = threading.Thread(target=self.receive_messages)
         receive.start()
-        for i in range(self.total_requests):
+        i = 0
+        while i < self.num_requests:
+            # current_leader : The leader to which request i is sent
+            current_leader= self.leader['id']
+            # is_broadcast : Did the client broadcast the request?
+            is_broadcast = False
             self.send_request()
-            time.sleep(2)
+            time.sleep(5)
             if self.request_id in self.message_buffer.keys():
                 del self.message_buffer[self.request_id]
             else:
                 self.send_request_broadcast()
+                self.num_leader_election += 1 # Every time a client sends a broadcast, it means the leader failed and election will happen
+                is_broadcast = True
             time.sleep(5)
+            if is_broadcast:
+                # If the client broadcasted the request and the leader still didn't change, it will re-send the same request
+                if current_leader != self.leader['id']:
+                    i += 1
+
+        print("Total Requests : {}, Number of Leader Elections : {}", self.num_requests. self.num_leader_election)
+

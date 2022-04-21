@@ -1,3 +1,6 @@
+import time
+
+
 class Node(object):
     def __init__(self, id, n, config):
         """Initialize node
@@ -13,8 +16,8 @@ class Node(object):
         # client port
         self.client_port = config.port.client_port
 
-        # Initial Leader ID
-        self.leader = 0
+        # [timestamp, Initial Leader ID]
+        self.leader = {'stamp': time.time()*100, 'id': 0}
 
 
     def send(self):

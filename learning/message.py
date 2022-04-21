@@ -1,4 +1,5 @@
 import ast
+import time
 
 
 class Message():
@@ -105,6 +106,26 @@ class RequestBroadcastMessage(Message):
             self.requestId
             ))
 
+class ReplyBroadcastMessage(Message):
+    def __init__(self, id, leader, stamp, requestId):
+        """reply to the broadcast message
+
+            id: id of sender
+            leader: id of leader
+            stamp: time stamp
+            requestId: request id of the request
+        """
+        super().__init__(id, leader, stamp)
+        self.requestId = int(requestId)
+
+    def __str__(self):
+        return ('ReplyBroadcastMsg {} {} {} {}'.format(
+            self.sender,
+            self.leader,
+            self.stamp,
+            self.requestId
+            ))
+
 
 class ResponseMessage(Message):
     def __init__(self, id, leader, stamp, requestId):
@@ -146,43 +167,6 @@ class ConfirmElectionMessage(Message):
             ))
 
 
-class CurrentLeaderMessage(Message):
-    def __init__(self, id, leader, stamp):
-        """Broadcast a new leader selected by a node
-
-            id: id of sender
-            leader: id of leader
-            stamp: time stamp
-        """
-        super().__init__(id, leader, stamp)
-        pass
-
-    def __str__(self):
-        return('CurrentLeaderMsg {} {} {}'.format(
-            self.sender,
-            self.leader,
-            self.stamp
-            ))
-
-class GetLeaderMessage(Message):
-    def __init__(self, id, leader, stamp):
-        """Broadcast a new leader selected by a node
-
-            id: id of sender
-            leader: id of leader
-            stamp: time stamp
-        """
-        super().__init__(id, leader, stamp)
-        pass
-
-    def __str__(self):
-        return('GetLeaderMsg {} {} {}'.format(
-            self.sender,
-            self.leader,
-            self.stamp
-            ))
-
-
 class FailureMessage(Message):
     def __init__(self, id, leader, stamp, failureVal):
         """Environment fails destination node
@@ -201,6 +185,41 @@ class FailureMessage(Message):
             self.stamp,
             self.leader,
             self.failureVal
+            ))
+
+class PingMessage(Message):
+    def __init__(self, id, leader, stamp):
+        """ping message to other nodes
+
+            id: id of sender
+            leader: id of leader
+            stamp: time stamp
+        """
+        super().__init__(id, leader, stamp)
+
+    def __str__(self):
+        return('PingMsg {} {} {}'.format(
+            self.sender,
+            self.leader,
+            self.stamp
+            ))
+
+
+class PingReplyMessage(Message):
+    def __init__(self, id, leader, stamp):
+        """Reply to ping message received by other node
+
+            id: id of sender
+            leader: id of leader
+            stamp: time stamp
+        """
+        super().__init__(id, leader, stamp)
+
+    def __str__(self):
+        return('PingReplyMsg {} {} {}'.format(
+            self.sender,
+            self.leader,
+            self.stamp
             ))
 
 
@@ -237,13 +256,17 @@ def parse_and_construct(data):
         message = ShareEstimatesMessage(data[1], data[2], data[3], data[4])
         message.parse_estimates()
 
-    elif data.startswith("GetLeaderMsg"):
+    elif data.startswith("PingMsg"):
         data = data.split(" ")
-        message = GetLeaderMessage(data[1], data[2], data[3])
+        message = PingMessage(data[1], data[2], data[3])
 
-    elif data.startswith("CurrentLeaderMsg"):
+    elif data.startswith("PingReplyMsg"):
         data = data.split(" ")
-        message = CurrentLeaderMessage(data[1], data[2], data[3])
+        message = PingReplyMessage(data[1], data[2], data[3])
+
+    elif data.startswith("ReplyBroadcastMsg"):
+        data = data.split(" ")
+        message = ReplyBroadcastMessage(data[1], data[2], data[3], data[4])
 
     else:
         assert False, 'Error parsing message, received unknown {}!'.format(data)

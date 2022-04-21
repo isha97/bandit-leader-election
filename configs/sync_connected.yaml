@@ -1,10 +1,12 @@
 num_faulty_nodes: 1 # f
-num_nodes: 4 # >= 3f + 1
-stationary: True
-sleep_sec: 15
-node_sleep: .1
-steps: 10000
-min_fail_fraction: 0.5
+num_nodes: 3 # >= 2f + 1
+min_fail_fraction: 0.5 # Minimum fraction of nodes to atleast fail at each round
+
+stationary: True # Node failure probability 
+fail_nodes_update: 15 # Time between node failures
+failure_update: 45 # Time between updating node failure rate
+
+# Type of election algorithm to use
 election_algorithm : 'Deterministic'
 
 # Failure prob set by environment
@@ -13,7 +15,7 @@ fail_prob:
   init:
     mean: 0.2
     std: 0.1
-  # Update delta prob.
+  # Update delta prob. (for non-stationary model)
   update:
     mean: 0.05
     std: 0.01
@@ -24,17 +26,22 @@ failure_estimates:
   mean: 0.1
   std: 0.05
 
-# Simpliest leader election
-v1:
+# MAB parameters
+mab:
   epsilon: 0.1
   decay: 0.99
   alpha: 0.1
 
-#client
+# client
 client:
   num_requests: 20
 
-#ports
+# ports
 port:
-  client_port : 60000
-  replica_base_port : 49154
+  client_port: 60000
+  replica_base_port: 49154
+
+# Replicas
+node:
+  ping_sleep_sec : 10 # duration between two ping message a node sends
+  ping_sleep_reply: 2 # duration betweem ping and reponse message
