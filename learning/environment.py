@@ -49,7 +49,7 @@ class Environment:
             self.total_nodes
         )
         self.failure_probability = abs(self.failure_probability)
-        self.failure_probability[0] = 0.6
+        self.failure_probability[1] = 0.6
         logging.info("Initial failure probability {}".format(
             np.array2string(self.failure_probability)
             ))

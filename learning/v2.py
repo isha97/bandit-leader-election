@@ -115,33 +115,18 @@ class v2(Node):
         self.my_candidates = ids
         return ids
 
-
-    def send_to_client(self, message):
-        """Send message only to client"""
+    def send_unicast(self, message, port):
+        # send point-to-point message
         host = '127.0.0.1'
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-            s.connect((host, self.client_port))
+            s.connect((host, port))
             s.send(message.encode('ascii'))
             s.close()
-            logging.info("Replied to client, message : {}".format(message))
+            logging.info("sending message {} to port {}".format(message, port))
         except Exception as msg:
-            logging.error("Unable to send the reply to client, reply message : {}".format(message))
+            logging.error("Unable to send message {} to port {}".format(message, port))
             s.close()
-
-    def send_to_leader(self, message):
-        """Send message only to leader"""
-        host = '127.0.0.1'
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        try:
-            s.connect((host, self.ports[self.leader['id']]))
-            s.send(message.encode('ascii'))
-            s.close()
-            logging.info("Replied to leader, message : {}".format(message))
-        except Exception as msg:
-            logging.error("Unable to send the reply to leader, reply message : {} error : {}".format(message, msg))
-            s.close()
-
 
     def send_ping_message(self):
         """Send ping message to any random node"""
@@ -185,7 +170,7 @@ class v2(Node):
         self.update_failure_estimate_down(message.sender)
 
 
-    def send(self):
+    def send_broadcast(self):
         """Send message in the out_buffer to other nodes"""
         while self.run:
             # if we are faulty, do not send anything
@@ -201,14 +186,7 @@ class v2(Node):
                     receiver = self.ports + [self.client_port]
                     for port in receiver:
                         if port != self.my_receving_port:
-                            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                            try:
-                                s.connect((host, port))
-                                s.send(message.encode('ascii'))
-                                s.close()
-                            except Exception as msg:
-                                logging.error("Unable to send message {} to port {}".format(msg, port))
-                                s.close()
+                            self.send_unicast(message, port)
             time.sleep(1)
 
 
@@ -298,7 +276,7 @@ class v2(Node):
         lock.release()
         self.update_failure_estimate_down(message.sender)
         response_msg = str(ReplyBroadcastMessage(self.id, self.leader['id'], 0, message.requestId))
-        self.send_to_leader(response_msg)
+        self.send_unicast(response_msg, self.ports[self.leader['id']])
 
 
     def receive_ping_message(self, message):
@@ -306,16 +284,7 @@ class v2(Node):
         logging.info("Received ping message from node {}".format(message.sender))
         self.update_failure_estimate_down(message.sender)
         reply_message = str(PingReplyMessage(self.id, 0, time.time()*100))
-        host = '127.0.0.1'
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        try:
-            s.connect((host, self.ports[message.sender]))
-            s.send(reply_message.encode('ascii'))
-            s.close()
-            logging.info("Replied to ping message from {}, message : {}".format(message.sender, reply_message))
-        except Exception as msg:
-            logging.error("Unable to send the reply to node {}, reply message : {}".format(message.sender, reply_message))
-            s.close()
+        self.send_unicast(reply_message, self.ports[message.sender])
 
 
     def receive_broadcast_reply(self, message):
@@ -342,8 +311,10 @@ class v2(Node):
         # if I am the next leader send the confirm election
         self.leader['id'] = next_candidate
         if next_candidate == self.id and not self.is_failed:
+            self.leader['stamp'] = time.time() * 100
             logging.info("I am the new leader! Broadcasting confirmation to everyone")
-            self.send_to_client(str(ConfirmElectionMessage(self.id, next_candidate, time.time()*100)))
+            self.send_unicast(str(ConfirmElectionMessage(self.id, next_candidate, self.leader['stamp'])),
+                              self.client_port)
 
 
     def leader_election_randomized(self):
@@ -354,10 +325,12 @@ class v2(Node):
             logging.info("I am supposed to select the next leader")
             self.leader['id'] = self.rng.choice(self.total_nodes, size=1, replace=False)
             logging.info("The new random leader selected is {}".format(self.leader['id']))
+            self.leader['stamp'] = time.time() * 100
             lock.acquire()
-            self.out_queue.append(str(ConfirmElectionMessage(self.id, self.leader['id'], time.time()*100)))
+            self.out_queue.append(str(ConfirmElectionMessage(self.id, self.leader['id'], self.leader['stamp'])))
             lock.release()
-            self.send_to_client(str(ConfirmElectionMessage(self.id, self.leader['id'], time.time()*100)))
+            self.send_unicast(str(ConfirmElectionMessage(self.id, self.leader['id'], self.leader['stamp'])),
+                              self.client_port)
 
     def receive_request(self, message):
         """Received from the client, if we are the leader, """
@@ -370,7 +343,8 @@ class v2(Node):
         requestId = message.requestId
 
         if self.leader['id'] == self.id:
-            self.send_to_client(str(ResponseMessage(self.id, self.leader['id'], time.time()*100, requestId)))
+            self.send_unicast(str(ResponseMessage(self.id, self.leader['id'], time.time()*100, requestId)),
+                              self.client_port)
             lock.acquire()
             self.out_queue.append(str(RequestBroadcastMessage(self.id, self.leader['id'], time.time()*100, requestId)))
             lock.release()
@@ -391,12 +365,14 @@ class v2(Node):
         ----
             message (Message): Candidate
         """
-        self.leader['id'] = message.sender
-        logging.info("Updated the current leader to {}".format(self.leader['id']))
-        # Clear out candidates now that we have a leader
-        self.candidates = []
-        self.my_candidates = []
-        self.update_failure_estimate_down(message.sender)
+        if message.stamp > self.leader['stamp']:
+            self.leader['id'] = message.leader
+            self.leader['stamp'] = message.stamp
+            logging.info("Updated the current leader to {}".format(self.leader['id']))
+            # Clear out candidates now that we have a leader
+            self.candidates = []
+            self.my_candidates = []
+            self.update_failure_estimate_down(message.sender)
 
 
     def receive_messages(self):
@@ -448,11 +424,13 @@ class v2(Node):
             # If we are the leader, broadcast candidate acceptance if we
             # are not failed
             if self.leader['id'] == self.id and not self.is_failed:
+                self.leader['stamp'] = time.time()*100
                 logging.info("I am the new leader! Broadcasting confirmation to everyone")
                 lock.acquire()
-                self.out_queue.append(str(ConfirmElectionMessage(self.id, self.leader['id'], time.time()*100)))
+                self.out_queue.append(str(ConfirmElectionMessage(self.id, self.leader['id'], self.leader['stamp'])))
                 lock.release()
-                self.send_to_client(str(ConfirmElectionMessage(self.id, self.leader['id'], time.time()*100)))
+                self.send_unicast(str(ConfirmElectionMessage(self.id, self.leader['id'], self.leader['stamp'])),
+                                  self.client_port)
 
 
     def update_failure_estimate_down(self, id: int):
@@ -488,7 +466,7 @@ class v2(Node):
         logging.info("Starting node {}".format(self.id))
         receive = threading.Thread(target=self.receive_messages)
         receive.start()
-        send_message = threading.Thread(target=self.send)
+        send_message = threading.Thread(target=self.send_broadcast)
         send_message.start()
         send_ping = threading.Thread(target=self.send_ping_message)
         send_ping.start()

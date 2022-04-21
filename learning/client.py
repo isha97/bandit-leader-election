@@ -34,9 +34,10 @@ class Client(Node):
 
     def recieve_confirm_election_msg(self, message):
         """Receive message of new leader"""
-        self.leader['id'] = message.sender
-        self.leader['stamp'] = message.stamp
-        logging.info("Changed leader to {} @ {}".format(self.leader['id'], self.leader['stamp']))
+        if message.stamp > self.leader['stamp']:
+            self.leader['id'] = message.leader
+            self.leader['stamp'] = message.stamp
+            logging.info("Changed leader to {} @ {}".format(self.leader['id'], self.leader['stamp']))
 
 
     def recieve_response_msg(self, message):

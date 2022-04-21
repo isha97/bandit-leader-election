@@ -7,7 +7,7 @@ fail_nodes_update: 15 # Time between node failures
 failure_update: 45 # Time between updating node failure rate
 
 # Type of election algorithm to use
-election_algorithm : 'Deterministic'
+election_algorithm : 'Randomized'
 
 # Failure prob set by environment
 fail_prob:
