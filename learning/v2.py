@@ -366,7 +366,7 @@ class v2(Node):
             message (Message): Candidate
         """
         if message.stamp > self.leader['stamp']:
-            self.leader['id'] = message.leader
+            self.leader['id'] = int(message.leader)
             self.leader['stamp'] = message.stamp
             logging.info("Updated the current leader to {}".format(self.leader['id']))
             # Clear out candidates now that we have a leader
@@ -418,7 +418,7 @@ class v2(Node):
 
             self.candidates.append(self.my_candidates)
             candidate_np = np.array(self.candidates).flatten()
-            self.leader['id'] = np.argmax(np.bincount(candidate_np))
+            self.leader['id'] = np.argmax(np.bincount(candidate_np))[0]
             logging.info("Enough candidate messages, new leader is {}".format(self.leader['id']))
 
             # If we are the leader, broadcast candidate acceptance if we
