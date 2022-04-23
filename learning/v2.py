@@ -183,7 +183,7 @@ class v2(Node):
                     message = self.out_queue.pop()
                     logging.info("BCAST message : {}".format(message))
                     # Broadcast to all other nodes
-                    receiver = self.ports + [self.client_port]
+                    receiver = self.ports
                     for port in receiver:
                         if port != self.my_receving_port:
                             self.send_unicast(message, port)
@@ -269,7 +269,7 @@ class v2(Node):
                     .format(message.requestId, message.sender))
         if self.leader['id'] != message.leader and \
                         self.leader['stamp'] < message.stamp:
-            self.leader['id'] = message.leader
+            self.leader['id'] = int(message.leader)
             self.leader['stamp'] = message.stamp
         lock.acquire()
         self.message_buffer[message.sender][message.requestId] = 1

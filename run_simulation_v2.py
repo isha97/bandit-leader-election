@@ -4,7 +4,8 @@ from easydict import EasyDict
 
 import time
 
-from learning.environment import Environment
+# from learning.environment import Environment
+from learning.environment_v2 import Environmentv2 as Environment
 from learning.v2 import v2 as Node
 from learning.client import Client
 

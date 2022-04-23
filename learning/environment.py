@@ -38,7 +38,6 @@ class Environment:
                 logging.StreamHandler()
                 ]
         )
-        self.set_probability()
 
 
     def set_probability(self):
