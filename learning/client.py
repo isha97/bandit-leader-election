@@ -31,15 +31,17 @@ class Client(Node):
         )
 
 
-    def recieve_confirm_election_msg(self, message):
+    def receive_confirm_election_msg(self, message):
         """Receive message of new leader"""
         if message.stamp > self.leader['stamp']:
             self.leader['id'] = message.leader
             self.leader['stamp'] = message.stamp
             logging.info("Changed leader to {} @ {}".format(self.leader['id'], self.leader['stamp']))
+        logging.info("Received confirm election message from {} @ {}, msg = {}"
+                     .format(message.sender, message.stamp, message))
 
 
-    def recieve_response_msg(self, message):
+    def receive_response_msg(self, message):
         """Receive response for request."""
         if self.leader['id'] != message.leader:
             if self.leader['stamp'] < message.stamp:
@@ -48,7 +50,7 @@ class Client(Node):
                 logging.info("Changed leader to {} @ {}".format(self.leader['id'], self.leader['stamp']))
         requestId = message.requestId
         self.message_buffer[requestId] = 1
-        logging.info("Received response from {} @ {}".format(message.sender, message.stamp))
+        logging.info("Received response from {} @ {}, msg = {}".format(message.sender, message.stamp, message))
 
 
     def multi_threaded_client(self, connection):
@@ -62,10 +64,10 @@ class Client(Node):
             message = parse_and_construct(data)
 
             if isinstance(message, ConfirmElectionMessage):
-                self.recieve_confirm_election_msg(message)
+                self.receive_confirm_election_msg(message)
 
             elif isinstance(message, ResponseMessage):
-                self.recieve_response_msg(message)
+                self.receive_response_msg(message)
 
         connection.close()
 

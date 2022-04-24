@@ -168,6 +168,7 @@ class v2(Node):
         self.ping_replies = False
         lock.release()
         self.update_failure_estimate_down(message.sender)
+        logging.info("Received ping message from {} @ {}, msg = {}".format(message.sender, message.stamp, message))
 
 
     def send_broadcast(self):
@@ -211,7 +212,7 @@ class v2(Node):
 
                 # If candidate accepts leader role
                 if isinstance(message, ConfirmElectionMessage):
-                    self.recieve_confirm_election_msg(message)
+                    self.receive_confirm_election_msg(message)
 
                 # If we receive request from leader, send response
                 elif isinstance(message, RequestBroadcastMessage):
@@ -229,7 +230,7 @@ class v2(Node):
 
                     # If we receive candidates from another node, update local candidate list 
                     if isinstance(message, ShareCandidatesMessage):
-                        self.recieve_candidate_msg(message)
+                        self.receive_candidate_msg(message)
 
                     # If we receive request from client
                     # (either we are leader or leader is down!)
@@ -265,8 +266,8 @@ class v2(Node):
 
     def receive_request_broadcast(self, message):
         """Respond to request broadcast from leader if not failed."""
-        logging.info("Request id {} from node {}"
-                    .format(message.requestId, message.sender))
+        logging.info("Request id {} from node {}, msg = {}"
+                    .format(message.requestId, message.sender, message))
         if self.leader['id'] != message.leader and \
                         self.leader['stamp'] < message.stamp:
             self.leader['id'] = int(message.leader)
@@ -281,7 +282,7 @@ class v2(Node):
 
     def receive_ping_message(self, message):
         """ Decreasing the failure probability of the node it received ping from"""
-        logging.info("Received ping message from node {}".format(message.sender))
+        logging.info("Received ping message from node {}, msg = {}".format(message.sender, message))
         self.update_failure_estimate_down(message.sender)
         reply_message = str(PingReplyMessage(self.id, 0, time.time()*100))
         self.send_unicast(reply_message, self.ports[message.sender])
@@ -289,7 +290,7 @@ class v2(Node):
 
     def receive_broadcast_reply(self, message):
         """ Decreasing the failure probability of the node it received boradcast reply from"""
-        logging.info("Received broadcast reply message from node {}".format(message.sender))
+        logging.info("Received broadcast reply message from node {}, msg = {}".format(message.sender, message))
         self.update_failure_estimate_down(message.sender)
 
 
@@ -334,8 +335,8 @@ class v2(Node):
 
     def receive_request(self, message):
         """Received from the client, if we are the leader, """
-        logging.info("From client, message : {}"
-                     .format(message.requestId))
+        logging.info("From client, message : {}, message = {}"
+                     .format(message.requestId, message))
 
         if self.is_failed:
             pass
@@ -357,7 +358,7 @@ class v2(Node):
                 self.leader_election_randomized()
 
 
-    def recieve_confirm_election_msg(self, message):
+    def receive_confirm_election_msg(self, message):
         """If candidate accepts leader role and clears candidates.
         Update new leader failure prob. 
 
@@ -365,6 +366,8 @@ class v2(Node):
         ----
             message (Message): Candidate
         """
+        logging.info("Received confirm election message from {} @ {}, msg = {}"
+                     .format(message.sender, message.stamp, message))
         if message.stamp > self.leader['stamp']:
             self.leader['id'] = int(message.leader)
             self.leader['stamp'] = message.stamp
@@ -373,6 +376,7 @@ class v2(Node):
             self.candidates = []
             self.my_candidates = []
             self.update_failure_estimate_down(message.sender)
+
 
 
     def receive_messages(self):
@@ -391,7 +395,7 @@ class v2(Node):
             start_new_thread(self.multi_threaded_client, (Client,))
 
 
-    def recieve_candidate_msg(self, message):
+    def receive_candidate_msg(self, message):
         """On receiving candidates from nodes, update local candidate buffer.
         If we have enough candidates, then update the leader. Update sender
         failure prob.
@@ -410,7 +414,7 @@ class v2(Node):
         self.candidates.append(message.candidates)
         self.update_failure_estimate_down(message.sender)
         logging.info("New candidate message from {}, message : {}"
-                     .format(message.sender, message.candidates))
+                     .format(message.sender, message.candidates, message))
 
         # If we have enough candidates to decide on leader
         if len(self.candidates) > (self.total_nodes - 1)/2 and \

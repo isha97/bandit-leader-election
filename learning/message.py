@@ -32,7 +32,7 @@ class ShareEstimatesMessage(Message):
         self.estimates = ast.literal_eval(self.estimates)
 
     def __str__(self):
-        return('ShareEstimatesMsg {} {} {} {}'.format(
+        return('[Message]ShareEstimatesMsg {} {} {} {}'.format(
             self.sender,
             self.leader,
             self.stamp,
@@ -57,7 +57,7 @@ class ShareCandidatesMessage(Message):
         self.candidates = ast.literal_eval(self.candidates)
 
     def __str__(self):
-        return('ShareCandidatesMsg {} {} {} {}'.format(
+        return('[Message]ShareCandidatesMsg {} {} {} {}'.format(
             self.sender,
             self.leader,
             self.stamp,
@@ -78,7 +78,7 @@ class ClientRequestMessage(Message):
         self.requestId = int(requestId)
 
     def __str__(self):
-        return ('ClientRequestMsg {} {} {} {}'.format(
+        return ('[Message]ClientRequestMsg {} {} {} {}'.format(
             self.sender,
             self.leader,
             self.stamp,
@@ -99,7 +99,7 @@ class RequestBroadcastMessage(Message):
         self.requestId = int(requestId)
 
     def __str__(self):
-        return ('RequestBroadcastMsg {} {} {} {}'.format(
+        return ('[Message]RequestBroadcastMsg {} {} {} {}'.format(
             self.sender,
             self.leader,
             self.stamp,
@@ -119,7 +119,7 @@ class ReplyBroadcastMessage(Message):
         self.requestId = int(requestId)
 
     def __str__(self):
-        return ('ReplyBroadcastMsg {} {} {} {}'.format(
+        return ('[Message]ReplyBroadcastMsg {} {} {} {}'.format(
             self.sender,
             self.leader,
             self.stamp,
@@ -140,7 +140,7 @@ class ResponseMessage(Message):
         self.requestId = int(requestId)
 
     def __str__(self):
-        return ('ResponseMsg {} {} {} {}'.format(
+        return ('[Message]ResponseMsg {} {} {} {}'.format(
             self.sender,
             self.leader,
             self.stamp,
@@ -160,7 +160,7 @@ class ConfirmElectionMessage(Message):
         pass
 
     def __str__(self):
-        return('ConfirmElectionMsg {} {} {}'.format(
+        return('[Message]ConfirmElectionMsg {} {} {}'.format(
             self.sender,
             self.leader,
             self.stamp
@@ -180,7 +180,7 @@ class FailureMessage(Message):
         self.failureVal = failureVal
 
     def __str__(self):
-        return('FailureMsg {} {} {} {}'.format(
+        return('[Message]FailureMsg {} {} {} {}'.format(
             self.sender,
             self.stamp,
             self.leader,
@@ -198,7 +198,7 @@ class PingMessage(Message):
         super().__init__(id, leader, stamp)
 
     def __str__(self):
-        return('PingMsg {} {} {}'.format(
+        return('[Message]PingMsg {} {} {}'.format(
             self.sender,
             self.leader,
             self.stamp
@@ -216,7 +216,7 @@ class PingReplyMessage(Message):
         super().__init__(id, leader, stamp)
 
     def __str__(self):
-        return('PingReplyMsg {} {} {}'.format(
+        return('[Message]PingReplyMsg {} {} {}'.format(
             self.sender,
             self.leader,
             self.stamp
@@ -226,45 +226,45 @@ class PingReplyMessage(Message):
 def parse_and_construct(data):
     """Parse data string and construct message object"""
 
-    if data.startswith("ConfirmElectionMsg"):
+    if data.startswith("[Message]ConfirmElectionMsg"):
         data = data.split(" ")
         message = ConfirmElectionMessage(data[1], data[2], data[3])
 
-    elif data.startswith("ShareCandidatesMsg"):
+    elif data.startswith("[Message]ShareCandidatesMsg"):
         data = data.split(" ")
         message = ShareCandidatesMessage(data[1], data[2], data[3], data[4])
         message.parse_candidates()
 
-    elif data.startswith("ClientRequestMsg"):
+    elif data.startswith("[Message]ClientRequestMsg"):
         data = data.split(" ")
         message = ClientRequestMessage(data[1], data[2], data[3], data[4])
 
-    elif data.startswith("RequestBroadcastMsg"):
+    elif data.startswith("[Message]RequestBroadcastMsg"):
         data = data.split(" ")
         message = RequestBroadcastMessage(data[1], data[2], data[3], data[4])
 
-    elif data.startswith("FailureMsg"):
+    elif data.startswith("[Message]FailureMsg"):
         data = data.split(" ")
         message = FailureMessage(data[1], data[2], data[3], data[4])
 
-    elif data.startswith("ResponseMsg"):
+    elif data.startswith("[Message]ResponseMsg"):
         data = data.split(" ")
         message = ResponseMessage(data[1], data[2], data[3], data[4])
 
-    elif data.startswith("ShareEstimatesMsg"):
+    elif data.startswith("[Message]ShareEstimatesMsg"):
         data = data.split(" ")
         message = ShareEstimatesMessage(data[1], data[2], data[3], data[4])
         message.parse_estimates()
 
-    elif data.startswith("PingMsg"):
+    elif data.startswith("[Message]PingMsg"):
         data = data.split(" ")
         message = PingMessage(data[1], data[2], data[3])
 
-    elif data.startswith("PingReplyMsg"):
+    elif data.startswith("[Message]PingReplyMsg"):
         data = data.split(" ")
         message = PingReplyMessage(data[1], data[2], data[3])
 
-    elif data.startswith("ReplyBroadcastMsg"):
+    elif data.startswith("[Message]ReplyBroadcastMsg"):
         data = data.split(" ")
         message = ReplyBroadcastMessage(data[1], data[2], data[3], data[4])
 
