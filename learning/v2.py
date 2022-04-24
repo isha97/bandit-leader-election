@@ -84,6 +84,7 @@ class v2(Node):
         )
 
         logging.info("Initial failure estimates {}".format(self.failure_estimates))
+        self.view_num = 0
 
 
     def _select_leader(self, topn:int = 1):
@@ -243,6 +244,10 @@ class v2(Node):
             if isinstance(message, FailureMessage):
                 self.receive_state_change_msg(message)
 
+            # get a new leader message
+            elif isinstance(message,NewLeaderMessage):
+                self.receive_new_leader_message(message)
+
             else:
                 continue
 
@@ -292,6 +297,18 @@ class v2(Node):
         logging.info("Received broadcast reply message from node {}".format(message.sender))
         self.update_failure_estimate_down(message.sender)
 
+    def receive_new_leader_message(self, message):
+        self.view_num = message.view_num
+        if not self.is_failed and message.leader == self.id:
+            self.leader['id'] = message.leader
+            self.leader['timestamp'] = message.timestamp
+            logging.info("I am the new leader! Broadcasting confirmation to everyone")
+            self.send_unicast(str(ConfirmElectionMessage(self.id, self.leader, self.leader['stamp'])),
+                              self.client_port)
+            lock.acquire()
+            self.out_queue.append(str(ConfirmElectionMessage(self.id, self.leader['id'], self.leader['stamp'])))
+            lock.release()
+
 
     def leader_election_learning_based(self):
         logging.info("Oops, leader is not responding. Starting leader election...")
@@ -313,24 +330,37 @@ class v2(Node):
         if next_candidate == self.id and not self.is_failed:
             self.leader['stamp'] = time.time() * 100
             logging.info("I am the new leader! Broadcasting confirmation to everyone")
-            self.send_unicast(str(ConfirmElectionMessage(self.id, next_candidate, self.leader['stamp'])),
+            self.send_unicast(str(ConfirmElectionMessage(self.id, self.leader['id'], self.leader['stamp'])),
                               self.client_port)
+            lock.acquire()
+            self.out_queue.append(str(ConfirmElectionMessage(self.id, self.leader['id'], self.leader['stamp'])))
+            lock.release()
 
 
     def leader_election_randomized(self):
         logging.info("Oops, leader is not responding. Starting leader election...")
-        next_candidate = (self.leader['id'] + 1)%self.total_nodes
+        next_view = (self.view_num + 1)%self.total_nodes
+        self.view_num = next_view
         # if I am supposed to select the next leader
-        if next_candidate == self.id:
+        if self.view_num == self.id:
             logging.info("I am supposed to select the next leader")
-            self.leader['id'] = self.rng.choice(self.total_nodes, size=1, replace=False)
+            self.leader['id'] = int(self.rng.choice(self.total_nodes, size=1, replace=False))
             logging.info("The new random leader selected is {}".format(self.leader['id']))
             self.leader['stamp'] = time.time() * 100
             lock.acquire()
-            self.out_queue.append(str(ConfirmElectionMessage(self.id, self.leader['id'], self.leader['stamp'])))
+            self.out_queue.append(str(NewLeaderMessage(self.id, self.leader['id'], self.view_num, self.leader['stamp'])))
             lock.release()
-            self.send_unicast(str(ConfirmElectionMessage(self.id, self.leader['id'], self.leader['stamp'])),
-                              self.client_port)
+
+            if self.id == self.leader['id']:
+                self.leader['stamp'] = time.time() * 100
+                logging.info("I am the new leader! Broadcasting confirmation to everyone")
+                self.send_unicast(str(ConfirmElectionMessage(self.id, self.id, self.leader['stamp'])),
+                                  self.client_port)
+                lock.acquire()
+                self.out_queue.append(str(ConfirmElectionMessage(self.id, self.id, self.leader['stamp'])))
+                lock.release()
+
+
 
     def receive_request(self, message):
         """Received from the client, if we are the leader, """

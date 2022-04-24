@@ -167,6 +167,26 @@ class ConfirmElectionMessage(Message):
             ))
 
 
+class NewLeaderMessage(Message):
+    def __init__(self, id, leader, view_number, stamp):
+        """Broadcast message to confirm sender is leader
+
+            id: id of sender
+            leader: id of leader
+            stamp: time stamp
+        """
+        super().__init__(id, leader, stamp)
+        self.view_num = int(view_number)
+
+    def __str__(self):
+        return('NewLeaderMsg {} {} {} {}'.format(
+            self.sender,
+            self.leader,
+            self.view_num,
+            self.stamp
+            ))
+
+
 class FailureMessage(Message):
     def __init__(self, id, leader, stamp, failureVal):
         """Environment fails destination node
@@ -267,6 +287,10 @@ def parse_and_construct(data):
     elif data.startswith("ReplyBroadcastMsg"):
         data = data.split(" ")
         message = ReplyBroadcastMessage(data[1], data[2], data[3], data[4])
+
+    elif data.startswith("NewLeaderMsg"):
+        data = data.split(" ")
+        message = NewLeaderMessage(data[1], data[2], data[3], data[4])
 
     else:
         assert False, 'Error parsing message, received unknown {}!'.format(data)

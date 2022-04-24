@@ -1,5 +1,5 @@
 num_faulty_nodes: 1 # f
-num_nodes: 3 # >= 2f + 1
+num_nodes: 4 # >= 2f + 1
 min_fail_fraction: 0.5 # Minimum fraction of nodes to atleast fail at each round
 
 stationary: True # Node failure probability 
@@ -7,7 +7,7 @@ fail_nodes_update: 15 # Time between node failures
 failure_update: 45 # Time between updating node failure rate
 
 # Type of election algorithm to use
-election_algorithm : 'Learning'
+election_algorithm : 'Randomized'
 
 # Failure prob set by environment
 fail_prob:
