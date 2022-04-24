@@ -269,6 +269,7 @@ def parse_and_construct(data):
         message = ReplyBroadcastMessage(data[1], data[2], data[3], data[4])
 
     else:
-        assert False, 'Error parsing message, received unknown {}!'.format(data)
+        # Error parsing message, received unknown
+        message = None
 
     return message
