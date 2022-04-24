@@ -78,26 +78,28 @@ class Environmentv2(Environment):
                     replace=False
                 )
 
-            # send the failure values to the respective nodes
-            logging.info("[Status] Failed nodes {}".format(indices))
-            host = '127.0.0.1'
-            for port in self.ports:
-                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                try:
-                    if port - self.replica_base_port in indices:
+            # Only if there is a node to fail, send a message
+            if len(indices) != 0:
+                # send the failure values to the respective nodes
+                logging.info("[Status] Failed nodes {}".format(indices))
+                host = '127.0.0.1'
+                for port in self.ports:
+                    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    try:
                         node_id = port - self.replica_base_port
-                        failVal = "True"
-                        self.machine_status[node_id] = 0
-                        # thread to sleep for repair period and then change machine_status to alive
-                        start_new_thread(self.sleep_for_repair, (node_id, ))
-                    else:
-                        failVal = "True" if self.machine_status[port - self.replica_base_port] == 0 else "False"
-                    logging.info("[SEND] FailureMsg to: {}".format(node_id))
-                    message = str(FailureMessage(-2, 0, time.time()*100, failVal))
-                    s.connect((host, port))
-                    s.send(message.encode('ascii'))
-                    s.close()
-                except Exception as msg:
-                    logging.error(str(msg) + " while connecting to {}".format(port))
-                    s.close()
+                        if port - self.replica_base_port in indices:
+                            failVal = "True"
+                            self.machine_status[node_id] = 0
+                            # thread to sleep for repair period and then change machine_status to alive
+                            start_new_thread(self.sleep_for_repair, (node_id, ))
+                        else:
+                            failVal = "True" if self.machine_status[port - self.replica_base_port] == 0 else "False"
+                        logging.info("[SEND] FailureMsg to: {}".format(node_id))
+                        message = str(FailureMessage(-2, 0, time.time()*100, failVal))
+                        s.connect((host, port))
+                        s.send(message.encode('ascii'))
+                        s.close()
+                    except Exception as msg:
+                        logging.error(str(msg) + " while connecting to {}".format(port))
+                        s.close()
             time.sleep(self.fail_nodes_update)

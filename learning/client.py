@@ -156,5 +156,5 @@ class Client(Node):
                     logging.info("[Status] New Leader elected, next request ID...")
                     i += 1
 
-        print("Total Requests : {}, Number of Leader Elections : {}", self.num_requests. self.num_leader_election)
+        print("Total Requests : {}, Number of Leader Elections : {}", self.num_requests, self.num_leader_election)
 

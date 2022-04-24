@@ -226,25 +226,19 @@ class v2(Node):
                 elif isinstance(message, PingReplyMessage):
                     self.receive_ping_reply_message(message)
 
-                else:
-                    logging.warning("[RECV] Unexpected message from: {} @ {}, Msg: {}".format(message.sender, message.stamp, message))
-
                 if self.leader['id'] is not None:
-
-                    # If we receive candidates from another node, update local candidate list 
-                    if isinstance(message, ShareCandidatesMessage):
-                        self.receive_candidate_msg(message)
 
                     # If we receive request from client
                     # (either we are leader or leader is down!)
-                    elif isinstance(message, ClientRequestMessage):
+                    if isinstance(message, ClientRequestMessage):
                         self.receive_request(message)
 
-                    if self.leader == self.id and isinstance(message, ReplyBroadcastMessage):
-                        self.receive_broadcast_reply(message)
+                    # If we receive candidates from another node, update local candidate list
+                    elif isinstance(message, ShareCandidatesMessage):
+                        self.receive_candidate_msg(message)
 
-                    else:
-                        logging.warning("[RECV] Unexpected message from: {} @ {}, Msg: {}".format(message.sender, message.stamp, message))
+                    elif self.leader == self.id and isinstance(message, ReplyBroadcastMessage):
+                        self.receive_broadcast_reply(message)
 
             # If the environement fails us!
             if isinstance(message, FailureMessage):
@@ -438,12 +432,12 @@ class v2(Node):
                      .format(message.sender, message))
 
         # If we have enough candidates to decide on leader
-        if len(self.candidates) > (self.total_nodes - 1)/2 and \
+        if len(self.candidates) > int((self.total_nodes - 1)/2 - 1) and \
             len(self.my_candidates) > 0:
 
             self.candidates.append(self.my_candidates)
             candidate_np = np.array(self.candidates).flatten()
-            self.leader['id'] = np.argmax(np.bincount(candidate_np))[0]
+            self.leader['id'] = np.argmax(np.bincount(candidate_np))
             logging.info("[LeaderElec] Got enough ShareCandidatesMsg's, New leader: {}".format(self.leader['id']))
 
             # If we are the leader, broadcast candidate acceptance if we
