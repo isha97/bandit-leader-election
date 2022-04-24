@@ -143,11 +143,10 @@ class v2(Node):
                 lock.acquire()
                 self.ping_replies = True
                 lock.release()
-                logging.info("[SEND][FailEst] PingMsg to: {}".format(node))
+                logging.info("[SEND][FailEst] [Message]PingMsg to: {}".format(node))
                 message = str(PingMessage(self.id, -100, time.time()*100))
                 s.send(message.encode('ascii'))
                 s.close()
-                logging.info("Sending ping message to node {}".format(node))
             except Exception as msg:
                 logging.error("Unable to send ping message to node {} {}".format(node, msg))
                 s.close()
@@ -169,7 +168,7 @@ class v2(Node):
         self.ping_replies = False
         lock.release()
         self.update_failure_estimate_down(message.sender)
-        logging.info("[RECV] PingReplyMsg from: {} @ {}, msg: {}".format(message.sender, message.stamp, message))
+        logging.info("[RECV] [Message]PingReplyMsg from: {} @ {}, msg: {}".format(message.sender, message.stamp, message))
 
 
     def send_broadcast(self):
@@ -275,23 +274,23 @@ class v2(Node):
         self.message_buffer[message.sender][message.requestId] = 1
         lock.release()
         self.update_failure_estimate_down(message.sender)
-        logging.info("[SEND] ReplyBroadcastMsg to: {}".format(self.leader['id']))
+        logging.info("[SEND] [Message]ReplyBroadcastMsg to: {}".format(self.leader['id']))
         response_msg = str(ReplyBroadcastMessage(self.id, self.leader['id'], 0, message.requestId))
         self.send_unicast(response_msg, self.ports[self.leader['id']])
 
 
     def receive_ping_message(self, message):
         """ Decreasing the failure probability of the node it received ping from"""
-        logging.info("[RECV][FailEst] PingMsg from: {} @ {}, msg: {}".format(message.sender, message.stamp, message))
+        logging.info("[RECV][FailEst] [Message]PingMsg from: {} @ {}, msg: {}".format(message.sender, message.stamp, message))
         self.update_failure_estimate_down(message.sender)
-        logging.info("[SEND][FailEst] PingReplyMsg to: {}".format(message.sender))
+        logging.info("[SEND][FailEst] [Message]PingReplyMsg to: {}".format(message.sender))
         reply_message = str(PingReplyMessage(self.id, 0, time.time()*100))
         self.send_unicast(reply_message, self.ports[message.sender])
 
 
     def receive_broadcast_reply(self, message):
         """ Decreasing the failure probability of the node it received boradcast reply from"""
-        logging.info("[RECV] ReplyBroadcastMsg from: {} @ {}, msg: {}".format(message.sender, message.stamp, message))
+        logging.info("[RECV] [Message]ReplyBroadcastMsg from: {} @ {}, msg: {}".format(message.sender, message.stamp, message))
         self.update_failure_estimate_down(message.sender)
 
 
@@ -302,7 +301,7 @@ class v2(Node):
         logging.info("[LeaderElec] Candidates: {}".format(ids))
         # add candidate message to out queue
         lock.acquire()
-        logging.info("[SEND][LeaderElec] ShareCandidatesMsg")
+        logging.info("[SEND][LeaderElec] [Message]ShareCandidatesMsg")
         self.out_queue.append(str(ShareCandidatesMessage(self.id, self.leader['id'], time.time()*100, list(ids))))
         lock.release()
 
