@@ -57,11 +57,12 @@ class ShareCandidatesMessage(Message):
         self.candidates = ast.literal_eval(self.candidates)
 
     def __str__(self):
-        return('[Message]ShareCandidatesMsg {} {} {} {}'.format(
+        candidate_list = ','.join(str(i) for i in self.candidates)
+        return('[Message]ShareCandidatesMsg {} {} {} [{}]'.format(
             self.sender,
             self.leader,
             self.stamp,
-            self.candidates
+            candidate_list
             ))
 
 

@@ -301,8 +301,9 @@ class v2(Node):
         logging.info("[LeaderElec] Candidates: {}".format(ids))
         # add candidate message to out queue
         lock.acquire()
-        logging.info("[SEND][LeaderElec] [Message]ShareCandidatesMsg")
-        self.out_queue.append(str(ShareCandidatesMessage(self.id, self.leader['id'], time.time()*100, list(ids))))
+        msg = str(ShareCandidatesMessage(self.id, self.leader['id'], time.time()*100, list(ids)))
+        logging.info("[SEND][LeaderElec] [Message]ShareCandidatesMsg {}".format(msg))
+        self.out_queue.append(msg)
         lock.release()
 
 
