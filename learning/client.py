@@ -72,7 +72,7 @@ class Client(Node):
                 self.receive_response_msg(message)
 
             elif isinstance(message, type(None)):
-                logging.warning("Error parsing message, received unknown: {}".format())
+                logging.warning("Error parsing message, received unknown: {}".format(message))
 
             else:
                 logging.warning("[RECV] Unexpected message from: {} @ {}, Msg: {}".format(message.sender, message.stamp, message))
