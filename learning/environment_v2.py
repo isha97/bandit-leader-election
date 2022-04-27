@@ -2,7 +2,7 @@ import numpy as np
 import time
 from _thread import *
 import threading
-from sklearn.model_selection import train_test_split
+from numpy.random import default_rng
 import logging
 import socket
 from .message import *
@@ -20,6 +20,9 @@ class Environmentv2(Environment):
             config: config parameters
         """
         super().__init__(n, config=config)
+        self.seed = config.random_seed
+
+        self.rng = default_rng(self.seed)
         self.run = False
         self.machine_dist = config.cluster_configuration.num_nodes
         self.machine_dist/=(np.sum(self.machine_dist))
@@ -27,7 +30,7 @@ class Environmentv2(Environment):
         self.scaling_constant = config.cluster_configuration.scaling_constant
 
         self.machine_ids = np.arange(self.total_nodes)
-        self.machine_types = np.argmax(np.random.multinomial(1, self.machine_dist, size=self.total_nodes), axis=-1)
+        self.machine_types = np.argmax(self.rng.multinomial(1, self.machine_dist, size=self.total_nodes), axis=-1)
         self.machine_status = np.array([1 for _ in range(self.total_nodes)]) # 0 is dead, 1 is alive
         self.repair_time_mean = config.cluster_configuration.repair_time_mean
         self.repair_time_sigma = config.cluster_configuration.repair_time_stdev
@@ -36,8 +39,10 @@ class Environmentv2(Environment):
         self.set_probability()
 
     def sleep_for_repair(self, node_id):
-        repair_duration = np.random.lognormal(self.repair_time_mean, self.repair_time_sigma) # sample from repair_distribution
+        repair_duration = self.rng.lognormal(self.repair_time_mean, self.repair_time_sigma) # sample from repair_distribution
         repair_duration *= self.repair_scale_factor
+        repair_duration = min(repair_duration, 60)
+        repair_duration = max(repair_duration, 10)
         logging.info("[Status] Node {} for {} secs.".format(node_id, repair_duration))
         time.sleep(repair_duration)
         lock.acquire()
@@ -67,12 +72,12 @@ class Environmentv2(Environment):
                 # Decide to fail or not
                 for idx, val in enumerate(self.failure_probability):
                     # select a new node (hasn't been selected before) which is alive
-                    if idx not in indices and self.machine_status[idx] == 1 and np.random.binomial(1, val) == 1:
+                    if idx not in indices and self.machine_status[idx] == 1 and self.rng.binomial(1, val) == 1:
                         indices.append(idx)
 
             # Random sample to limit nodes failed to self.max_failed_nodes
             if len(indices) + (self.total_nodes - np.sum(self.machine_status)) > self.max_failed_nodes:
-                indices = np.random.choice(
+                indices = self.rng.choice(
                     indices,
                     self.max_failed_nodes - (self.total_nodes - np.sum(self.machine_status)),
                     replace=False

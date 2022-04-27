@@ -1,13 +1,14 @@
 num_faulty_nodes: 2 # f
 num_nodes: 5 # >= 2f + 1
-min_fail_fraction: 0.5 # Minimum fraction of nodes to atleast fail at each round
+min_fail_fraction: 0.8 # Minimum fraction of nodes to atleast fail at each round
+random_seed : 100
 
 stationary: True # Node failure probability 
 fail_nodes_update: 15 # Time between node failures
 failure_update: 45 # Time between updating node failure rate
 
 # Type of election algorithm to use
-election_algorithm : 'Learning'
+election_algorithm : 'Deterministic'
 
 # Failure prob set by environment
 fail_prob:
@@ -34,7 +35,7 @@ mab:
 
 # client
 client:
-  num_requests: 40
+  num_requests: 100
 
 # ports
 port:
@@ -50,9 +51,9 @@ node:
 cluster_configuration:
   num_nodes: [463, 2025, 1114, 717, 810]  # Node dist. of each PM type
   base : [0.95, 0.15, 0.7, 0.15, 0.8]     # Node failure of each PM type
-  scaling_constant : 0.5                  # Scale failure rate
+  scaling_constant : 1                  # Scale failure rate
 
   # Repair time - Gamma dist. params
   repair_time_mean : 1.80
   repair_time_stdev : 2.07
-  scaling_repair_time_constant : 5        # Scale
+  scaling_repair_time_constant : 1        # Scale

@@ -1,3 +1,27 @@
 number_requests     num_nodes       Algorithm       View_chages
 20                  3               Deterministic   2
 20                  11               Deterministic   2
+
+
+Number of election rounds v/s number of requests (Deterministic, Randomized, Learning)
+Number of messages transferred v/s number of requests
+Number of election rounds v/s minimum fraction of failed nodes
+Number of election rounds for uniform v/s imbalance
+epsilon-greedy, UCB ,heuristic
+number of nodes as factor
+
+
+
+To Do:
+1. Visualization
+2. Uniform seeds
+3. For randomized, set epsilon to 1
+
+The paper will be graded on:
+
+- How clearly it describes the main idea it is tackling (20 points)
+
+- The depth of the related work section, and whether the paper places its work in the context of prior work properly (30 points)
+
+- The experiments that are performed to validate the central idea (30 points)
+

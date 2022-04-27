@@ -41,15 +41,15 @@ if __name__ == "__main__":
     if type == 'env':
         env = Environment(config.num_nodes, config)
         env.run_threads()
-        time.sleep(args.duration)
-        env.stop_threads()
+        # time.sleep(args.duration)
+        # env.stop_threads()
 
     elif type.startswith('node'):
         node_id = type.split("_")[1]
         node = Node(int(node_id), config.num_nodes, config)
         node.run_node()
-        time.sleep(args.duration)
-        node.stop_node()
+        # time.sleep(args.duration)
+        # node.stop_node()
 
     elif type == 'client':
         client = Client(-1, config.num_nodes, config)

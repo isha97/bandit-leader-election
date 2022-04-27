@@ -130,6 +130,7 @@ class Client(Node):
 
     def run_node(self):
         """Run send, receive threads"""
+        logging.info("[Status] Starting Client: {}".format(self.client_port))
         receive = threading.Thread(target=self.receive_messages)
         receive.start()
         i = 0

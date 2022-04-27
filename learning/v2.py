@@ -40,13 +40,6 @@ class v2(Node):
         self.decay = config.mab.decay
         self.alpha = config.mab.alpha
 
-        # Set failure estimate of all nodes (noisy)
-        self.failure_estimates = np.random.normal(
-            config.failure_estimates.mean,
-            config.failure_estimates.std,
-            self.total_nodes
-        )
-
         # Messages buffer and out queue
         self.out_queue = []
         self.message_buffer = {i: {} for i in range(config.num_nodes)}
@@ -61,11 +54,21 @@ class v2(Node):
         # Candidate buffers
         self.candidates = []
         self.my_candidates = []
+        self.seed = config.random_seed
 
-        self.rng = default_rng()
+        self.rng = default_rng(self.seed)
         self.ping_sleep_sec = config.node.ping_sleep_sec
         self.ping_sleep_reply = config.node.ping_sleep_reply
         self.num_leader_election_rounds = 0
+        self.num_reqests = config.client.num_requests
+
+
+        # Set failure estimate of all nodes (noisy)
+        self.failure_estimates = self.rng.normal(
+            config.failure_estimates.mean,
+            config.failure_estimates.std,
+            self.total_nodes
+        )
 
         # Leader election algorithm type
         if config.election_algorithm == 'Deterministic':
@@ -96,7 +99,7 @@ class v2(Node):
             ids (np.ndarray): ndarray of candidate ids
         """
 
-        if np.random.rand() < self.epsilon:
+        if self.rng.random() < self.epsilon:
             try:
                 # using topn + 1 so that current failed leader doesn't get selected again
                 ids = self.rng.choice(self.total_nodes, size=topn + 1, replace=False)
@@ -278,6 +281,12 @@ class v2(Node):
         response_msg = str(ReplyBroadcastMessage(self.id, self.leader['id'], 0, message.requestId))
         self.send_unicast(response_msg, self.ports[self.leader['id']])
 
+        if message.requestId == self.num_reqests:
+            time.sleep(5)
+            lock.acquire()
+            self.run = False
+            lock.release()
+
 
     def receive_ping_message(self, message):
         """ Decreasing the failure probability of the node it received ping from"""
@@ -371,6 +380,12 @@ class v2(Node):
             elif self.election_algorithm == Election_Algorithm.RANDOM:
                 logging.info("[LeaderElec] Starting Random LE...")
                 self.leader_election_randomized()
+
+        if message.requestId == self.num_reqests:
+            time.sleep(10)
+            lock.acquire()
+            self.run = False
+            lock.release()
 
 
     def receive_confirm_election_msg(self, message):
