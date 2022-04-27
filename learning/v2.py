@@ -444,7 +444,9 @@ class v2(Node):
             self.leader['stamp'] = message.stamp
             logging.info("[Leader] Changed leader to {} @ {}".format(self.leader['id'], self.leader['stamp']))
 
+        lock.acquire()
         self.candidates.append(message.candidates)
+        lock.release()
         self.update_failure_estimate_down(message.sender)
         logging.info("[RECV][LeaderElec] ShareCandidatesMsg from: {}, msg: {}"
                      .format(message.sender, message))
@@ -454,8 +456,12 @@ class v2(Node):
             len(self.my_candidates) > 0:
             time.sleep(2)
 
+            lock.acquire()
             self.candidates.append(self.my_candidates)
-            candidate_np = np.array(self.candidates).flatten()
+            local_candidates = self.candidates
+            self.candidates = []
+            lock.release()
+            candidate_np = np.array(local_candidates).flatten()
             self.leader['id'] = np.argmax(np.bincount(candidate_np))
             logging.info("[LeaderElec] Got enough ShareCandidatesMsg's, New leader: {}".format(self.leader['id']))
 
