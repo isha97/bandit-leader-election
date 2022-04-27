@@ -20,6 +20,7 @@ osascript -e 'tell application "Terminal" to do script "cd /Users/isha/Desktop/C
 
 osascript -e 'tell application "Terminal" to do script "cd /Users/isha/Desktop/Courses/DistributedComputing/leader-election-bft && /usr/local/bin/python3.9 run_simulation_v2.py -c configs/sync_connected.yaml -t node_3"' &
 osascript -e 'tell application "Terminal" to do script "cd /Users/isha/Desktop/Courses/DistributedComputing/leader-election-bft && /usr/local/bin/python3.9 run_simulation_v2.py -c configs/sync_connected.yaml -t node_4"' &
+sleep 5
 #osascript -e 'tell application "Terminal" to do script "cd /Users/isha/Desktop/Courses/DistributedComputing/leader-election-bft && /usr/local/bin/python3.9 run_simulation_v2.py -c configs/sync_connected.yaml -t node_5"' &
 #
 #osascript -e 'tell application "Terminal" to do script "cd /Users/isha/Desktop/Courses/DistributedComputing/leader-election-bft && /usr/local/bin/python3.9 run_simulation_v2.py -c configs/sync_connected.yaml -t node_6"' &

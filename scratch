@@ -1,6 +1,12 @@
 number_requests     num_nodes       Algorithm       View_chages
 20                  3               Deterministic   2
-20                  11               Deterministic   2
+100                 5               Deterministic   11
+100                 5               Deterministic   11
+
+Init. Failure probability [0.15 0.7  0.15 0.95 0.7 ]
+500 - 40
+Init. Failure probability [0.15 0.7  0.15 0.95 0.7 ]
+500 -37
 
 
 Number of election rounds v/s number of requests (Deterministic, Randomized, Learning)

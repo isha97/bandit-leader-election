@@ -4,7 +4,7 @@ min_fail_fraction: 0.8 # Minimum fraction of nodes to atleast fail at each round
 random_seed : 100
 
 stationary: True # Node failure probability 
-fail_nodes_update: 15 # Time between node failures
+fail_nodes_update: 30 # Time between node failures
 failure_update: 45 # Time between updating node failure rate
 
 # Type of election algorithm to use
@@ -35,7 +35,7 @@ mab:
 
 # client
 client:
-  num_requests: 100
+  num_requests: 500
 
 # ports
 port:
