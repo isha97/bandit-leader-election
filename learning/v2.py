@@ -210,25 +210,26 @@ class v2(Node):
             # Parse data, construct message 
             message = parse_and_construct(data)
 
+            # If candidate accepts leader role
+            if isinstance(message, ConfirmElectionMessage):
+                self.receive_confirm_election_msg(message)
+
+            # If we receive request from leader, send response
+            if isinstance(message, RequestBroadcastMessage):
+                self.receive_request_broadcast(message)
+
             if not self.is_failed:
 
-                # If candidate accepts leader role
-                if isinstance(message, ConfirmElectionMessage):
-                    self.receive_confirm_election_msg(message)
-
-                # If we receive request from leader, send response
-                elif isinstance(message, RequestBroadcastMessage):
-                    self.receive_request_broadcast(message)
-
                 # If we receive ping message from any other node
-                elif isinstance(message, PingMessage):
+                if isinstance(message, PingMessage):
                     self.receive_ping_message(message)
 
                 # If we receive ping reply message from any other node
                 elif isinstance(message, PingReplyMessage):
                     self.receive_ping_reply_message(message)
 
-                if self.leader['id'] is not None:
+                #if self.leader['id'] is not None:
+                if True:
 
                     # If we receive request from client
                     # (either we are leader or leader is down!)
@@ -257,8 +258,8 @@ class v2(Node):
                 self.update_failure_estimate_up(self.id)
             self.is_failed = True
         else:
-            if previous_fail_status == True:
-                self.leader['id'] = None
+            # if previous_fail_status == True:
+            #     self.leader['id'] = None
             self.is_failed = False
         logging.info("[Status] Failed Status: {}".format(self.is_failed))
 
@@ -276,10 +277,11 @@ class v2(Node):
         lock.acquire()
         self.message_buffer[message.sender][message.requestId] = 1
         lock.release()
-        self.update_failure_estimate_down(message.sender)
-        logging.info("[SEND] [Message]ReplyBroadcastMsg to: {}".format(self.leader['id']))
-        response_msg = str(ReplyBroadcastMessage(self.id, self.leader['id'], 0, message.requestId))
-        self.send_unicast(response_msg, self.ports[self.leader['id']])
+        if not self.is_failed:
+            self.update_failure_estimate_down(message.sender)
+            logging.info("[SEND] [Message]ReplyBroadcastMsg to: {}".format(self.leader['id']))
+            response_msg = str(ReplyBroadcastMessage(self.id, self.leader['id'], 0, message.requestId))
+            self.send_unicast(response_msg, self.ports[self.leader['id']])
 
         if message.requestId == self.num_reqests:
             time.sleep(5)
@@ -405,7 +407,8 @@ class v2(Node):
             # Clear out candidates now that we have a leader
             self.candidates = []
             self.my_candidates = []
-            self.update_failure_estimate_down(message.sender)
+            if not self.is_failed:
+                self.update_failure_estimate_down(message.sender)
 
 
     def receive_messages(self):
