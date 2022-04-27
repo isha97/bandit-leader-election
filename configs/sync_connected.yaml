@@ -8,7 +8,7 @@ fail_nodes_update: 30 # Time between node failures
 failure_update: 45 # Time between updating node failure rate
 
 # Type of election algorithm to use
-election_algorithm : 'Deterministic'
+election_algorithm : 'Learning'
 
 # Failure prob set by environment
 fail_prob:
@@ -29,8 +29,8 @@ failure_estimates:
 
 # MAB parameters
 mab:
-  epsilon: 0.1
-  decay: 0.99
+  epsilon: 1
+  decay: 1
   alpha: 0.1
 
 # client
