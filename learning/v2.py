@@ -228,18 +228,19 @@ class v2(Node):
                 elif isinstance(message, PingReplyMessage):
                     self.receive_ping_reply_message(message)
 
+                # If we receive candidates from another node, update local candidate list
+                elif isinstance(message, ShareCandidatesMessage):
+                    self.receive_candidate_msg(message)
+
+                # If we receive request from client
+                # (either we are leader or leader is down!)
+                elif isinstance(message, ClientRequestMessage):
+                    self.receive_request(message)
+
                 if self.leader['id'] is not None:
 
-                    # If we receive request from client
-                    # (either we are leader or leader is down!)
-                    if isinstance(message, ClientRequestMessage):
-                        self.receive_request(message)
-
-                    # If we receive candidates from another node, update local candidate list
-                    elif isinstance(message, ShareCandidatesMessage):
-                        self.receive_candidate_msg(message)
-
-                    elif self.leader == self.id and isinstance(message, ReplyBroadcastMessage):
+                    # If we are the leader and nodes send reponse back to us
+                    if self.leader == self.id and isinstance(message, ReplyBroadcastMessage):
                         self.receive_broadcast_reply(message)
 
             # If the environement fails us!
@@ -281,6 +282,7 @@ class v2(Node):
         response_msg = str(ReplyBroadcastMessage(self.id, self.leader['id'], 0, message.requestId))
         self.send_unicast(response_msg, self.ports[self.leader['id']])
 
+        # Hack to shut down the node
         if message.requestId == self.num_reqests:
             time.sleep(5)
             lock.acquire()
@@ -353,7 +355,7 @@ class v2(Node):
 
 
     def receive_request(self, message):
-        """Received from the client, if we are the leader, """
+        """Received from the client, if we are the leader, or the leader failed """
         if self.is_failed:
             pass
 
@@ -365,12 +367,16 @@ class v2(Node):
         if self.leader['id'] == self.id:
             logging.info("[SEND][Client] ResponseMsg msg: {}".format(message))
             self.send_unicast(str(ResponseMessage(self.id, self.leader['id'], time.time()*100, requestId)),
-                              self.client_port)
+                            self.client_port)
             lock.acquire()
             logging.info("[SEND][Client] RequestBroadcastMsg msg: {}".format(message))
             self.out_queue.append(str(RequestBroadcastMessage(self.id, self.leader['id'], time.time()*100, requestId)))
             lock.release()
         elif requestId not in self.message_buffer[self.leader['id']]:
+            # Function overloads for when a node is rejoining the node pool
+            # When this happens, update the leader with the client leader and
+            # take part in leader election.
+            self.leader['id'] = int(message.leader)
             if self.election_algorithm == Election_Algorithm.DETERMINISITC:
                 logging.info("[LeaderElec] Starting Deterministic LE...")
                 self.leader_election_deterministic()
@@ -381,6 +387,7 @@ class v2(Node):
                 logging.info("[LeaderElec] Starting Random LE...")
                 self.leader_election_randomized()
 
+        # Hack to shut down the node
         if message.requestId == self.num_reqests:
             time.sleep(10)
             lock.acquire()
@@ -445,6 +452,11 @@ class v2(Node):
         self.update_failure_estimate_down(message.sender)
         logging.info("[RECV][LeaderElec] ShareCandidatesMsg from: {}, msg: {}"
                      .format(message.sender, message))
+
+        # If we don't have a candidate means we were down when the LE round
+        # began. Elect ourselves as the leader since we are up now.
+        if len(self.my_candidates) == 0:
+            self.my_candidates.append(self.id)
 
         # If we have enough candidates to decide on leader
         if len(self.candidates) > int((self.total_nodes - 1)/2 - 1) and \
