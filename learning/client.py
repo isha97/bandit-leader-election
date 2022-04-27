@@ -134,12 +134,15 @@ class Client(Node):
         receive = threading.Thread(target=self.receive_messages)
         receive.start()
         i = 0
+        prev_request = -1
         while i < self.num_requests:
             # current_leader : The leader to which request i is sent
             current_leader = self.leader['id']
             # is_broadcast : Did the client broadcast the request?
             is_broadcast = False
-            self.send_request(i)
+            if prev_request != i:
+                self.send_request(i)
+            prev_request = i
             time.sleep(5)
             if i in self.message_buffer.keys():
                 logging.info("[Status] Verified received ResponseMsg ID: {}".format(i))
