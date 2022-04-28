@@ -3,6 +3,7 @@ import time
 
 from .node import Node
 from learning.message import *
+from utils.logger import ViewChangeLogger
 from _thread import *
 import socket
 import threading
@@ -36,6 +37,7 @@ class Client(Node):
         if message.stamp > self.leader['stamp']:
             self.leader['id'] = message.leader
             self.leader['stamp'] = message.stamp
+            self.view_change_logger.tick(message.stamp, message.sender)
             logging.info("[Leader] Changed leader to {} @ {}".format(self.leader['id'], self.leader['stamp']))
 
         logging.info("[RECV][LeaderElec] ConfirmElectionMsg from: {} @ {}, msg: {}"
@@ -48,6 +50,7 @@ class Client(Node):
             if self.leader['stamp'] < message.stamp:
                 self.leader['id'] = message.sender
                 self.leader['stamp'] = message.stamp
+                self.view_change_logger.tick(message.stamp, message.sender)
                 logging.info("[Leader] Changed leader to {} @ {}".format(self.leader['id'], self.leader['stamp']))
 
         requestId = message.requestId
@@ -84,6 +87,7 @@ class Client(Node):
         """Receive message thread"""
         host = '127.0.0.1'
         port = self.client_port
+        self.view_change_logger = ViewChangeLogger(time.time()*100, self.total_nodes)
         receiving_socket = socket.socket()
         try:
             receiving_socket.bind((host, port))
@@ -160,6 +164,6 @@ class Client(Node):
                     logging.info("[Status] New Leader elected, next request ID...")
                     i += 1
 
+        self.view_change_logger.plot('client_view_changes')
         print("Total Requests : {}, Number of Leader Elections : {}", self.num_requests, self.num_leader_election)
         logging.info("Total Requests : {}, Number of Leader Elections : {}".format(self.num_requests, self.num_leader_election))
-

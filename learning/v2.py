@@ -6,6 +6,7 @@ from enum import Enum
 
 from .node import Node
 from .message import *
+from utils.logger import FailureEstimatesLogger
 from _thread import *
 import threading
 import socket
@@ -73,6 +74,7 @@ class v2(Node):
             config.failure_estimates.std,
             self.total_nodes
         )
+        self.fail_est_logger = FailureEstimatesLogger(time.time()*100, self.failure_estimates)
 
         # Leader election algorithm type
         if config.election_algorithm == 'Deterministic':
@@ -319,7 +321,7 @@ class v2(Node):
             self.send_unicast(response_msg, self.ports[self.leader['id']])
 
         # Hack to shut down the node
-        if message.requestId == self.num_reqests:
+        if message.requestId == self.num_reqests - 1:
             time.sleep(5)
             lock.acquire()
             self.run = False
@@ -423,7 +425,7 @@ class v2(Node):
                 self.leader_election_randomized()
 
         # Hack to shut down the node
-        if message.requestId == self.num_reqests:
+        if message.requestId == self.num_reqests - 1:
             time.sleep(10)
             lock.acquire()
             self.run = False
@@ -540,6 +542,7 @@ class v2(Node):
         self.failure_estimates[id] = \
             (self.failure_estimates[id] * self.node_count[id]) / (self.node_count[id] + 1)
         self.node_count[id] += 1
+        self.fail_est_logger.tick(time.time()*100, self.failure_estimates)
         logging.info("[FailEst DOWN] Updating Node: {} New FailEst: {}".format(id, self.failure_estimates))
 
 
@@ -553,6 +556,7 @@ class v2(Node):
         self.failure_estimates[id] = \
             (self.failure_estimates[id] * self.node_count[id] + 1) / (self.node_count[id] + 1)
         self.node_count[id] += 1
+        self.fail_est_logger.tick(time.time()*100, self.failure_estimates)
         logging.info("[FailEst UP] Updating Node: {} New FailEst: {}".format(id, self.failure_estimates))
 
 
@@ -567,6 +571,7 @@ class v2(Node):
         send_message.start()
         send_ping = threading.Thread(target=self.send_ping_message)
         send_ping.start()
+        self.fail_est_logger.plot('FailEst_node_{}'.format(self.id))
 
 
     def stop_node(self):
