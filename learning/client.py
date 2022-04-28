@@ -165,7 +165,7 @@ class Client(Node):
                     logging.info("[Status] New Leader elected, next request ID...")
                     i += 1
 
-        self.view_change_logger.plot('client_view_changes')
+        self.view_change_logger.save('client_view_changes')
         lock.acquire()
         self.run = False
         lock.release()

@@ -575,5 +575,4 @@ class v2(Node):
         lock.acquire()
         self.run = False
         lock.release()
-        print(self.fail_est_logger.data)
-        self.fail_est_logger.plot('FailEst_node_{}'.format(self.id))
+        self.fail_est_logger.save('FailEst_node_{}'.format(self.id))

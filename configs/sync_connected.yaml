@@ -1,5 +1,5 @@
-num_faulty_nodes: 1 # f
-num_nodes: 3 # >= 2f + 1
+num_faulty_nodes: 2 # f
+num_nodes: 5 # >= 2f + 1
 min_fail_fraction: 0.8 # Minimum fraction of nodes to atleast fail at each round
 random_seed : 100
 
@@ -32,12 +32,12 @@ mab:
   epsilon: 0.1
   decay: 0.99
   alpha: 0.1
-  algo: 'egreedy' # random/UCB
+  algo: 'egreedy' # egreedy/UCB
   c: 2 # for UCB
 
 # client
 client:
-  num_requests: 5
+  num_requests: 500
 
 # ports
 port:
