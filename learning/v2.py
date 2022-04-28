@@ -39,6 +39,10 @@ class v2(Node):
         self.epsilon = config.mab.epsilon
         self.decay = config.mab.decay
         self.alpha = config.mab.alpha
+        self.explore_exploit = config.mab.algo
+        self.tradeoff = config.mab.c
+        self.arm_counts = np.zeros((self.total_nodes))
+        self.t = 0
 
         # Messages buffer and out queue
         self.out_queue = []
@@ -87,8 +91,8 @@ class v2(Node):
         )
 
 
-    def _select_leader(self, topn:int = 1):
-        """Select candidate leaders. Use e-greedy strategy
+    def _select_node_exploitation(self, topn:int = 1):
+        """Select candidate leaders.
 
         Args
         ----
@@ -99,24 +103,47 @@ class v2(Node):
             ids (np.ndarray): ndarray of candidate ids
         """
 
-        if self.rng.random() < self.epsilon:
-            try:
-                # using topn + 1 so that current failed leader doesn't get selected again
-                ids = self.rng.choice(self.total_nodes, size=topn + 1, replace=False)
-            except:
-                ids = np.arange(-1, self.total_nodes)
-            if self.leader['id'] in ids:
-                ids = np.delete(ids, np.where(ids == self.leader['id']))
+        if self.explore_exploit == 'egreedy':
+            if self.rng.random() < self.epsilon:
+                try:
+                    # using topn + 1 so that current failed leader doesn't get selected again
+                    ids = self.rng.choice(self.total_nodes, size=topn + 1, replace=False)
+                except:
+                    ids = np.arange(-1, self.total_nodes)
+                if self.leader['id'] in ids:
+                    ids = np.delete(ids, np.where(ids == self.leader['id']))
+                else:
+                    ids = ids[:topn]
             else:
-                ids = ids[:topn]
-        else:
-            ids = (-self.failure_estimates).argsort()[-topn:]
-        self.epsilon *= self.decay
-        ids = np.sort(ids)
-        lock.acquire()
-        self.my_candidates = ids
-        lock.release()
-        return ids
+                ids = (-self.failure_estimates).argsort()[-topn:]
+            self.epsilon *= self.decay
+            ids = np.sort(ids)
+            lock.acquire()
+            self.my_candidates = ids
+            lock.release()
+            return ids
+        elif self.explore_exploit == 'UCB':
+            choice = (
+                self.failure_estimates
+                - self.tradeoff*np.sqrt(np.log(self.t)/self.arm_counts)
+            ).argsort()[:topn]
+            lock.acquire()
+            self.my_candidates = list(choice)
+            lock.release()
+            return choice
+
+
+    def _select_node_exploration(self):
+        """Algorithm to use for exploration in bandits"""
+        if self.explore_exploit == 'egreedy':
+            return self.rng.choice(self.total_nodes, size=1, replace=False)[0]
+        elif self.explore_exploit == 'UCB':
+            choice = np.argmax(
+                    self.tradeoff*np.sqrt(np.log(self.t)/self.arm_counts)
+            )
+            self.t += 1
+            self.arm_counts[choice] += 1
+            return choice
 
 
     def send_unicast(self, message, port):
@@ -142,7 +169,8 @@ class v2(Node):
                 continue
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             try:
-                node = self.rng.choice(self.total_nodes, size=1, replace=False)[0]
+                # Select a node to send ping message -- bandit exploration
+                node = self._select_node_exploration()
                 port = self.ports[node]
                 s.connect((host, port))
                 lock.acquire()
@@ -316,7 +344,7 @@ class v2(Node):
     def leader_election_learning_based(self):
         """Learning Leader Election"""
         self.update_failure_estimate_up(self.leader['id'])
-        ids = self._select_leader(topn=int((self.total_nodes - 1) / 2))
+        ids = self._select_node_exploitation(topn=int((self.total_nodes - 1) / 2))
         logging.info("[LeaderElec] Candidates: {}".format(ids))
         # add candidate message to out queue
         lock.acquire()

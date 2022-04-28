@@ -32,6 +32,8 @@ mab:
   epsilon: 0.1
   decay: 0.99
   alpha: 0.1
+  algo: 'egreedy' # random/UCB
+  c: 2 # for UCB
 
 # client
 client:

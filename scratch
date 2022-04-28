@@ -11,6 +11,17 @@ Init. Failure probability [0.15 0.7  0.15 0.95 0.7 ]
 500 - 30 Randomized LE
 500 - 22
 
+UCB LE
+500 - 17
+
+Estimates:
+	True: 0.15 0.7  0.15 0.95 0.7
+	Node 0: 0.12558503 0.25098696 0.01277482 0.61136248 0.48518642
+	Node 1: 0.08001878 0.25662705 0.07915086 0.62817997 0.5013666
+	Node 2: 0.03793454 0.22857307 0.06601121 0.62983588 0.33833676
+	Node 3: 0.04167291 0.27336453 0.12261659 0.41351791 0.35899753
+	Node 4: 0.08001878 0.25662705 0.07915086 0.62817997 0.5013666
+
 
 Number of election rounds v/s number of requests (Deterministic, Randomized, Learning)
 Number of messages transferred v/s number of requests
