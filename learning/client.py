@@ -153,7 +153,7 @@ class Client(Node):
                 self.send_request_broadcast(i)
                 self.num_leader_election += 1 # Every time a client sends a broadcast, it means the leader failed and election will happen
                 is_broadcast = True
-            time.sleep(5)
+                time.sleep(9)
             if is_broadcast:
                 # If the client broadcasted the request and the leader still didn't change, it will re-send the same request
                 if int(current_leader) != int(self.leader['id']):
@@ -161,4 +161,5 @@ class Client(Node):
                     i += 1
 
         print("Total Requests : {}, Number of Leader Elections : {}", self.num_requests, self.num_leader_election)
+        logging.info("Total Requests : {}, Number of Leader Elections : {}".format(self.num_requests, self.num_leader_election))
 

@@ -113,7 +113,9 @@ class v2(Node):
             ids = (-self.failure_estimates).argsort()[-topn:]
         self.epsilon *= self.decay
         ids = np.sort(ids)
+        lock.acquire()
         self.my_candidates = ids
+        lock.release()
         return ids
 
 
@@ -207,41 +209,40 @@ class v2(Node):
             if not data:
                 break
 
-            # Parse data, construct message 
+            # Parse data, construct message
             message = parse_and_construct(data)
+
+            # If candidate accepts leader role
+            if isinstance(message, ConfirmElectionMessage):
+                self.receive_confirm_election_msg(message)
+
+            # If we receive request from leader, send response
+            if isinstance(message, RequestBroadcastMessage):
+                self.receive_request_broadcast(message)
 
             if not self.is_failed:
 
-                # If candidate accepts leader role
-                if isinstance(message, ConfirmElectionMessage):
-                    self.receive_confirm_election_msg(message)
-
-                # If we receive request from leader, send response
-                elif isinstance(message, RequestBroadcastMessage):
-                    self.receive_request_broadcast(message)
-
                 # If we receive ping message from any other node
-                elif isinstance(message, PingMessage):
+                if isinstance(message, PingMessage):
                     self.receive_ping_message(message)
 
                 # If we receive ping reply message from any other node
                 elif isinstance(message, PingReplyMessage):
                     self.receive_ping_reply_message(message)
 
-                # If we receive candidates from another node, update local candidate list
-                elif isinstance(message, ShareCandidatesMessage):
-                    self.receive_candidate_msg(message)
+                # if self.leader['id'] is not None:
 
                 # If we receive request from client
                 # (either we are leader or leader is down!)
                 elif isinstance(message, ClientRequestMessage):
                     self.receive_request(message)
 
-                if self.leader['id'] is not None:
+                # If we receive candidates from another node, update local candidate list
+                elif isinstance(message, ShareCandidatesMessage):
+                    self.receive_candidate_msg(message)
 
-                    # If we are the leader and nodes send reponse back to us
-                    if self.leader == self.id and isinstance(message, ReplyBroadcastMessage):
-                        self.receive_broadcast_reply(message)
+                elif self.leader == self.id and isinstance(message, ReplyBroadcastMessage):
+                    self.receive_broadcast_reply(message)
 
             # If the environement fails us!
             if isinstance(message, FailureMessage):
@@ -256,11 +257,15 @@ class v2(Node):
         if message.failureVal == "True":
             if not self.is_failed:
                 self.update_failure_estimate_up(self.id)
+            lock.acquire()
             self.is_failed = True
+            lock.release()
         else:
-            if previous_fail_status == True:
-                self.leader['id'] = None
+            # if previous_fail_status == True:
+            #     self.leader['id'] = None
+            lock.acquire()
             self.is_failed = False
+            lock.release()
         logging.info("[Status] Failed Status: {}".format(self.is_failed))
 
 
@@ -270,17 +275,20 @@ class v2(Node):
                     .format(message.requestId, message.sender, message))
         if self.leader['id'] != message.leader and \
                         self.leader['stamp'] < message.stamp:
+            lock.acquire()
             self.leader['id'] = int(message.leader)
             self.leader['stamp'] = message.stamp
+            lock.release()
             logging.info("[Leader] Changed leader to {} @ {}".format(self.leader['id'], self.leader['stamp']))
 
         lock.acquire()
         self.message_buffer[message.sender][message.requestId] = 1
         lock.release()
-        self.update_failure_estimate_down(message.sender)
-        logging.info("[SEND] [Message]ReplyBroadcastMsg to: {}".format(self.leader['id']))
-        response_msg = str(ReplyBroadcastMessage(self.id, self.leader['id'], 0, message.requestId))
-        self.send_unicast(response_msg, self.ports[self.leader['id']])
+        if not self.is_failed:
+            self.update_failure_estimate_down(message.sender)
+            logging.info("[SEND] [Message]ReplyBroadcastMsg to: {}".format(self.leader['id']))
+            response_msg = str(ReplyBroadcastMessage(self.id, self.leader['id'], 0, message.requestId))
+            self.send_unicast(response_msg, self.ports[self.leader['id']])
 
         # Hack to shut down the node
         if message.requestId == self.num_reqests:
@@ -356,9 +364,6 @@ class v2(Node):
 
     def receive_request(self, message):
         """Received from the client, if we are the leader, or the leader failed """
-        if self.is_failed:
-            pass
-
         logging.info("[RECV][Client] Request ID: {}, message = {}"
                      .format(message.requestId, message))
 
@@ -376,7 +381,9 @@ class v2(Node):
             # Function overloads for when a node is rejoining the node pool
             # When this happens, update the leader with the client leader and
             # take part in leader election.
+            lock.acquire()
             self.leader['id'] = int(message.leader)
+            lock.release()
             if self.election_algorithm == Election_Algorithm.DETERMINISITC:
                 logging.info("[LeaderElec] Starting Deterministic LE...")
                 self.leader_election_deterministic()
@@ -406,13 +413,18 @@ class v2(Node):
         logging.info("[RECV][LeaderElec] ConfirmElectionMsg from: {} @ {}, msg = {}"
                      .format(message.sender, message.stamp, message))
         if message.stamp > self.leader['stamp']:
+            lock.acquire()
             self.leader['id'] = int(message.leader)
             self.leader['stamp'] = message.stamp
+            lock.release()
             logging.info("[Leader] Changed leader to {} @ {}".format(self.leader['id'], self.leader['stamp']))
             # Clear out candidates now that we have a leader
+            lock.acquire()
             self.candidates = []
             self.my_candidates = []
-            self.update_failure_estimate_down(message.sender)
+            lock.release()
+            if not self.is_failed:
+                self.update_failure_estimate_down(message.sender)
 
 
     def receive_messages(self):
@@ -442,36 +454,45 @@ class v2(Node):
         ----
             Message (Message): CandidateElection message
         """
-        if self.leader['id'] != message.leader and \
-            self.leader['stamp'] < message.stamp:
-            self.leader['id'] = message.leader
-            self.leader['stamp'] = message.stamp
-            logging.info("[Leader] Changed leader to {} @ {}".format(self.leader['id'], self.leader['stamp']))
+        # if self.leader['id'] != message.leader and \
+        #     self.leader['stamp'] < message.stamp:
+        #     self.leader['id'] = message.leader
+        #     self.leader['stamp'] = message.stamp
+        #     logging.info("[Leader] Changed leader to {} @ {}".format(self.leader['id'], self.leader['stamp']))
 
+        lock.acquire()
         self.candidates.append(message.candidates)
+        lock.release()
         self.update_failure_estimate_down(message.sender)
         logging.info("[RECV][LeaderElec] ShareCandidatesMsg from: {}, msg: {}"
                      .format(message.sender, message))
 
-        # If we don't have a candidate means we were down when the LE round
-        # began. Elect ourselves as the leader since we are up now.
-        if len(self.my_candidates) == 0:
-            self.my_candidates.append(self.id)
-
         # If we have enough candidates to decide on leader
-        if len(self.candidates) > int((self.total_nodes - 1)/2 - 1) and \
-            len(self.my_candidates) > 0:
-            time.sleep(2)
+        if len(self.candidates) > int((self.total_nodes - 1) / 2 - 1) and \
+                len(self.my_candidates) > 0:
+            time.sleep(4)
 
+            lock.acquire()
             self.candidates.append(self.my_candidates)
-            candidate_np = np.array(self.candidates).flatten()
-            self.leader['id'] = np.argmax(np.bincount(candidate_np))
-            logging.info("[LeaderElec] Got enough ShareCandidatesMsg's, New leader: {}".format(self.leader['id']))
+            local_candidates = self.candidates
+            self.candidates = []
+            lock.release()
+            candidate_np = np.array(local_candidates).flatten()
+            #self.leader['id'] = np.argmax(np.bincount(candidate_np))
+            leader_id = np.argsort(np.bincount(candidate_np))[-1]
+            lock.acquire()
+            if leader_id != self.leader['id']:
+                local_leader = leader_id
+            else:
+                local_leader = np.argsort(np.bincount(candidate_np))[-2]
+            lock.release()
+            logging.info("[LeaderElec] Got enough ShareCandidatesMsg's, New leader: {}".format(local_leader))
 
             # If we are the leader, broadcast candidate acceptance if we
             # are not failed
-            if self.leader['id'] == self.id and not self.is_failed:
-                self.leader['stamp'] = time.time()*100
+            if local_leader == self.id and not self.is_failed:
+                self.leader['stamp'] = time.time() * 100
+                self.leader['id'] = local_leader
                 logging.info("[LeaderElec] I am the new leader! Broadcasting ConfirmElectionMsg")
                 lock.acquire()
                 self.out_queue.append(str(ConfirmElectionMessage(self.id, self.leader['id'], self.leader['stamp'])))

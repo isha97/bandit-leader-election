@@ -8,6 +8,9 @@ Init. Failure probability [0.15 0.7  0.15 0.95 0.7 ]
 Init. Failure probability [0.15 0.7  0.15 0.95 0.7 ]
 500 -37
 
+500 - 30 Randomized LE
+500 - 22
+
 
 Number of election rounds v/s number of requests (Deterministic, Randomized, Learning)
 Number of messages transferred v/s number of requests
