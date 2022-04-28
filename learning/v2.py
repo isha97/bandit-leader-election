@@ -84,7 +84,7 @@ class v2(Node):
         else:
             self.election_algorithm = Election_Algorithm.LEARNING
 
-        logging.basicConfig(level=logging.DEBUG,
+        logging.basicConfig(level=logging.INFO,
             format='%(asctime)s %(levelname)-8s [Node {}] %(funcName)s() %(message)s'.format(self.id),
             datefmt='%Y-%m-%d %H:%M:%S', handlers=[
                 logging.FileHandler('logs/node_{}.log'.format(self.id)),
@@ -323,9 +323,7 @@ class v2(Node):
         # Hack to shut down the node
         if message.requestId == self.num_reqests - 1:
             time.sleep(5)
-            lock.acquire()
-            self.run = False
-            lock.release()
+            self.stop_node()
 
 
     def receive_ping_message(self, message):
@@ -427,9 +425,7 @@ class v2(Node):
         # Hack to shut down the node
         if message.requestId == self.num_reqests - 1:
             time.sleep(10)
-            lock.acquire()
-            self.run = False
-            lock.release()
+            self.stop_node()
 
 
     def receive_confirm_election_msg(self, message):
@@ -571,10 +567,13 @@ class v2(Node):
         send_message.start()
         send_ping = threading.Thread(target=self.send_ping_message)
         send_ping.start()
-        self.fail_est_logger.plot('FailEst_node_{}'.format(self.id))
 
 
     def stop_node(self):
         """Terminate all threads of the node."""
         logging.info("[Status] Stopping Node: {}".format(self.id))
+        lock.acquire()
         self.run = False
+        lock.release()
+        print(self.fail_est_logger.data)
+        self.fail_est_logger.plot('FailEst_node_{}'.format(self.id))

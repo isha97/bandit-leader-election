@@ -8,6 +8,7 @@ from _thread import *
 import socket
 import threading
 
+lock = threading.Lock()
 
 class Client(Node):
     def __init__(self, id, n, config):
@@ -23,7 +24,7 @@ class Client(Node):
         self.message_buffer = {}
         self.num_leader_election = 0 # total number of times the leader election happens
         self.num_requests = config.client.num_requests
-        logging.basicConfig(level=logging.DEBUG,
+        logging.basicConfig(level=logging.INFO,
                             format='%(asctime)s %(levelname)-8s [Client] %(funcName)s() %(message)s',
                             datefmt='%Y-%m-%d %H:%M:%S', handlers=[
                                 logging.FileHandler("logs/client.log"),
@@ -165,5 +166,8 @@ class Client(Node):
                     i += 1
 
         self.view_change_logger.plot('client_view_changes')
+        lock.acquire()
+        self.run = False
+        lock.release()
         print("Total Requests : {}, Number of Leader Elections : {}", self.num_requests, self.num_leader_election)
         logging.info("Total Requests : {}, Number of Leader Elections : {}".format(self.num_requests, self.num_leader_election))
