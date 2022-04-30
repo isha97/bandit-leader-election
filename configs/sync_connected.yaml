@@ -32,12 +32,12 @@ mab:
   epsilon: 0.1
   decay: 0.99
   alpha: 0.1
-  algo: 'egreedy' # egreedy/UCB
+  algo: 'UCB-penalize' # egreedy/UCB
   c: 2 # for UCB
 
 # client
 client:
-  num_requests: 1000
+  num_requests: 2000
 
 # ports
 port:

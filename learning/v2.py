@@ -149,19 +149,20 @@ class v2(Node):
 
     def _select_node_exploration(self):
         """Algorithm to use for exploration in bandits"""
-        if self.explore_exploit == 'egreedy':
-            return self.rng.choice(self.total_nodes, size=1, replace=False)[0]
-        elif self.explore_exploit == 'UCB':
-            choice = np.argmax(
-                    self.tradeoff*np.sqrt(np.log(self.t)/self.arm_counts)
-            )
-            self.t += 1
-            self.arm_counts[choice] += 1
-            return choice
+        # if self.explore_exploit == 'egreedy':
+        #     return self.rng.choice(self.total_nodes, size=1, replace=False)[0]
+        # elif self.explore_exploit == 'UCB':
+        choice = np.argmax(
+                self.tradeoff*np.sqrt(np.log(self.t)/self.arm_counts)
+        )
+        self.t += 1
+        self.arm_counts[choice] += 1
+        return choice
 
     def penalize(self):
         # Penalize the local_leader which was selected  but isn't alive so that it doesn't get selected again
         self.penalize_values[self.local_leader] += 0.5
+        logging.info("Penalizing {}, values = {}".format(self.local_leader, self.penalize_values))
 
 
     def send_unicast(self, message, port):
@@ -432,6 +433,8 @@ class v2(Node):
             # lock.release()
             if self.request_broadcast_id is not None and self.request_broadcast_id == requestId:
                 self.penalize()
+            else:
+                self.request_broadcast_id = requestId
             if self.election_algorithm == Election_Algorithm.DETERMINISITC:
                 logging.info("[LeaderElec] Starting Deterministic LE...")
                 self.leader_election_deterministic()
@@ -537,8 +540,10 @@ class v2(Node):
             # If we are the leader, broadcast candidate acceptance if we
             # are not failed
             if self.local_leader == self.id and not self.is_failed:
+                lock.acquire()
                 self.leader['stamp'] = time.time() * 100
                 self.leader['id'] = self.local_leader
+                lock.release()
                 logging.info("[LeaderElec] I am the new leader! Broadcasting ConfirmElectionMsg")
                 lock.acquire()
                 self.out_queue.append(str(ConfirmElectionMessage(self.id, self.leader['id'], self.leader['stamp'])))
