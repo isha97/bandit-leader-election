@@ -73,7 +73,7 @@ def plot_fail_est(path, node_id, true_vals=None):
 
 if __name__=='__main__':
     # Enter true probs before running
-    true_vals = [0.95, 0.15, 0.7, 0.15, 0.8]
+    true_vals = [0.15, 0.7, 0.15, 0.95, 0.7]
     print("True Failure Probs: {}".format(true_vals))
 
     try:

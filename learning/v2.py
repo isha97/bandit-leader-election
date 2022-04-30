@@ -496,7 +496,7 @@ class v2(Node):
         # If we have enough candidates to decide on leader
         if len(self.candidates) > int((self.total_nodes - 1) / 2 - 1) and \
                 len(self.my_candidates) > 0:
-            time.sleep(4)
+            time.sleep(3)
 
             lock.acquire()
             self.candidates.append(self.my_candidates)

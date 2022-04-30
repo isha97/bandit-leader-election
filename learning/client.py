@@ -148,7 +148,7 @@ class Client(Node):
             if prev_request != i:
                 self.send_request(i)
             prev_request = i
-            time.sleep(5)
+            time.sleep(2)
             if i in self.message_buffer.keys():
                 logging.info("[Status] Verified received ResponseMsg ID: {}".format(i))
                 del self.message_buffer[i]
@@ -158,7 +158,7 @@ class Client(Node):
                 self.send_request_broadcast(i)
                 self.num_leader_election += 1 # Every time a client sends a broadcast, it means the leader failed and election will happen
                 is_broadcast = True
-                time.sleep(9)
+                time.sleep(6)
             if is_broadcast:
                 # If the client broadcasted the request and the leader still didn't change, it will re-send the same request
                 if int(current_leader) != int(self.leader['id']):
