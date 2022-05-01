@@ -45,3 +45,22 @@ The paper will be graded on:
 
 - The experiments that are performed to validate the central idea (30 points)
 
+Total Requests : {}, Number of Leader Elections : {} 2000 29
+2022-05-01 00:16:13 INFO     [Client] run_node() Total Requests : 2000, Number of Leader Elections : 29 - Learning e-greedy
+
+
+2022-04-30 22:59:58 INFO     [Client] run_node() Total Requests : 2000, Number of Leader Elections : 38 - Randomized LE
+
+
+Total Requests : {}, Number of Leader Elections : {} 2000 34
+2022-05-01 11:08:21 INFO     [Client] run_node() Total Requests : 2000, Number of Leader Elections : 34 - Deterministic
+
+
+
+Total Requests : {}, Number of Leader Elections : {} 2000 83
+2022-05-01 12:27:06 INFO     [Client] run_node() Total Requests : 2000, Number of Leader Elections : 83 - Deterministic 11 nodes
+
+
+
+
+

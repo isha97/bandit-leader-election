@@ -120,7 +120,7 @@ class v2(Node):
                 else:
                     ids = ids[:topn]
             else:
-                ids = (-self.failure_estimates).argsort()[-topn:]
+                ids = (-self.failure_estimates - self.penalize_values).argsort()[-topn:]
             self.epsilon *= self.decay
             ids = np.sort(ids)
             lock.acquire()
