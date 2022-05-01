@@ -20,16 +20,16 @@ osascript -e 'tell application "Terminal" to do script "cd /Users/isha/Desktop/C
 
 osascript -e 'tell application "Terminal" to do script "cd /Users/isha/Desktop/Courses/DistributedComputing/leader-election-bft && /usr/local/bin/python3.9 run_simulation_v2.py -c configs/sync_connected.yaml -t node_3"' &
 osascript -e 'tell application "Terminal" to do script "cd /Users/isha/Desktop/Courses/DistributedComputing/leader-election-bft && /usr/local/bin/python3.9 run_simulation_v2.py -c configs/sync_connected.yaml -t node_4"' &
+
+osascript -e 'tell application "Terminal" to do script "cd /Users/isha/Desktop/Courses/DistributedComputing/leader-election-bft && /usr/local/bin/python3.9 run_simulation_v2.py -c configs/sync_connected.yaml -t node_5"' &
+
+osascript -e 'tell application "Terminal" to do script "cd /Users/isha/Desktop/Courses/DistributedComputing/leader-election-bft && /usr/local/bin/python3.9 run_simulation_v2.py -c configs/sync_connected.yaml -t node_6"' &
+osascript -e 'tell application "Terminal" to do script "cd /Users/isha/Desktop/Courses/DistributedComputing/leader-election-bft && /usr/local/bin/python3.9 run_simulation_v2.py -c configs/sync_connected.yaml -t node_7"' &
+osascript -e 'tell application "Terminal" to do script "cd /Users/isha/Desktop/Courses/DistributedComputing/leader-election-bft && /usr/local/bin/python3.9 run_simulation_v2.py -c configs/sync_connected.yaml -t node_8"' &
+
+osascript -e 'tell application "Terminal" to do script "cd /Users/isha/Desktop/Courses/DistributedComputing/leader-election-bft && /usr/local/bin/python3.9 run_simulation_v2.py -c configs/sync_connected.yaml -t node_9"' &
+osascript -e 'tell application "Terminal" to do script "cd /Users/isha/Desktop/Courses/DistributedComputing/leader-election-bft && /usr/local/bin/python3.9 run_simulation_v2.py -c configs/sync_connected.yaml -t node_10"' &
 sleep 5
-#osascript -e 'tell application "Terminal" to do script "cd /Users/isha/Desktop/Courses/DistributedComputing/leader-election-bft && /usr/local/bin/python3.9 run_simulation_v2.py -c configs/sync_connected.yaml -t node_5"' &
-#
-#osascript -e 'tell application "Terminal" to do script "cd /Users/isha/Desktop/Courses/DistributedComputing/leader-election-bft && /usr/local/bin/python3.9 run_simulation_v2.py -c configs/sync_connected.yaml -t node_6"' &
-#osascript -e 'tell application "Terminal" to do script "cd /Users/isha/Desktop/Courses/DistributedComputing/leader-election-bft && /usr/local/bin/python3.9 run_simulation_v2.py -c configs/sync_connected.yaml -t node_7"' &
-#osascript -e 'tell application "Terminal" to do script "cd /Users/isha/Desktop/Courses/DistributedComputing/leader-election-bft && /usr/local/bin/python3.9 run_simulation_v2.py -c configs/sync_connected.yaml -t node_8"' &
-
-#osascript -e 'tell application "Terminal" to do script "cd /Users/isha/Desktop/Courses/DistributedComputing/leader-election-bft && /usr/local/bin/python3.9 run_simulation_v2.py -c configs/sync_connected.yaml -t node_9"' &
-#osascript -e 'tell application "Terminal" to do script "cd /Users/isha/Desktop/Courses/DistributedComputing/leader-election-bft && /usr/local/bin/python3.9 run_simulation_v2.py -c configs/sync_connected.yaml -t node_10"' &
-
 
 osascript -e 'tell application "Terminal" to do script "cd /Users/isha/Desktop/Courses/DistributedComputing/leader-election-bft && /usr/local/bin/python3.9 run_simulation_v2.py -c configs/sync_connected.yaml -t env"' &
 

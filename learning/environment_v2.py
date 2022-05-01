@@ -43,7 +43,7 @@ class Environmentv2(Environment):
         try:
             repair_duration = self.rng.lognormal(self.repair_time_mean, self.repair_time_sigma) # sample from repair_distribution
             repair_duration *= self.repair_scale_factor
-            repair_duration = min(repair_duration, 60)
+            repair_duration = min(repair_duration, 30)
             repair_duration = max(repair_duration, 7)
             logging.info("[Status] Node {} for {} secs.".format(node_id, repair_duration))
             time.sleep(repair_duration)

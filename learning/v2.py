@@ -66,6 +66,9 @@ class v2(Node):
         self.ping_sleep_reply = config.node.ping_sleep_reply
         self.num_leader_election_rounds = 0
         self.num_reqests = config.client.num_requests
+        self.local_leader = None
+        self.penalize_values = np.zeros((self.total_nodes))
+        self.request_broadcast_id = None
 
 
         # Set failure estimate of all nodes (noisy)
@@ -117,7 +120,7 @@ class v2(Node):
                 else:
                     ids = ids[:topn]
             else:
-                ids = (-self.failure_estimates).argsort()[-topn:]
+                ids = (-self.failure_estimates - self.penalize_values).argsort()[-topn:]
             self.epsilon *= self.decay
             ids = np.sort(ids)
             lock.acquire()
@@ -133,19 +136,33 @@ class v2(Node):
             self.my_candidates = list(choice)
             lock.release()
             return choice
+        elif self.explore_exploit == 'UCB-penalize':
+            choice = (
+                self.failure_estimates + self.penalize_values
+                - self.tradeoff*np.sqrt(np.log(self.t)/self.arm_counts)
+            ).argsort()[:topn]
+            lock.acquire()
+            self.my_candidates = list(choice)
+            lock.release()
+            return choice
 
 
     def _select_node_exploration(self):
         """Algorithm to use for exploration in bandits"""
-        if self.explore_exploit == 'egreedy':
-            return self.rng.choice(self.total_nodes, size=1, replace=False)[0]
-        elif self.explore_exploit == 'UCB':
-            choice = np.argmax(
-                    self.tradeoff*np.sqrt(np.log(self.t)/self.arm_counts)
-            )
-            self.t += 1
-            self.arm_counts[choice] += 1
-            return choice
+        # if self.explore_exploit == 'egreedy':
+        #     return self.rng.choice(self.total_nodes, size=1, replace=False)[0]
+        # elif self.explore_exploit == 'UCB':
+        choice = np.argmax(
+                self.tradeoff*np.sqrt(np.log(self.t)/self.arm_counts)
+        )
+        self.t += 1
+        self.arm_counts[choice] += 1
+        return choice
+
+    def penalize(self):
+        # Penalize the local_leader which was selected  but isn't alive so that it doesn't get selected again
+        self.penalize_values[self.local_leader] += 0.5
+        logging.info("Penalizing {}, values = {}".format(self.local_leader, self.penalize_values))
 
 
     def send_unicast(self, message, port):
@@ -203,6 +220,7 @@ class v2(Node):
         self.ping_replies = False
         lock.release()
         self.update_failure_estimate_down(message.sender)
+        self.penalize_values[message.sender] = 0
         logging.info("[RECV] [Message]PingReplyMsg from: {} @ {}, msg: {}".format(message.sender, message.stamp, message))
 
 
@@ -303,6 +321,7 @@ class v2(Node):
         """Respond to request broadcast from leader if not failed."""
         logging.info("[RECV] RequestBroadcastMsg ID: {} from: {}, msg: {}"
                     .format(message.requestId, message.sender, message))
+        self.request_broadcast_id = None
         if self.leader['id'] != message.leader and \
                         self.leader['stamp'] < message.stamp:
             lock.acquire()
@@ -409,9 +428,13 @@ class v2(Node):
             # Function overloads for when a node is rejoining the node pool
             # When this happens, update the leader with the client leader and
             # take part in leader election.
-            lock.acquire()
-            self.leader['id'] = int(message.leader)
-            lock.release()
+            # lock.acquire()
+            # self.leader['id'] = int(message.leader)
+            # lock.release()
+            if self.request_broadcast_id is not None and self.request_broadcast_id == requestId:
+                self.penalize()
+            else:
+                self.request_broadcast_id = requestId
             if self.election_algorithm == Election_Algorithm.DETERMINISITC:
                 logging.info("[LeaderElec] Starting Deterministic LE...")
                 self.leader_election_deterministic()
@@ -508,17 +531,19 @@ class v2(Node):
             leader_id = np.argsort(np.bincount(candidate_np))[-1]
             lock.acquire()
             if leader_id != self.leader['id']:
-                local_leader = leader_id
+                self.local_leader = leader_id
             else:
-                local_leader = np.argsort(np.bincount(candidate_np))[-2]
+                self.local_leader = np.argsort(np.bincount(candidate_np))[-2]
             lock.release()
-            logging.info("[LeaderElec] Got enough ShareCandidatesMsg's, New leader: {}".format(local_leader))
+            logging.info("[LeaderElec] Got enough ShareCandidatesMsg's, New leader: {}".format(self.local_leader))
 
             # If we are the leader, broadcast candidate acceptance if we
             # are not failed
-            if local_leader == self.id and not self.is_failed:
+            if self.local_leader == self.id and not self.is_failed:
+                lock.acquire()
                 self.leader['stamp'] = time.time() * 100
-                self.leader['id'] = local_leader
+                self.leader['id'] = self.local_leader
+                lock.release()
                 logging.info("[LeaderElec] I am the new leader! Broadcasting ConfirmElectionMsg")
                 lock.acquire()
                 self.out_queue.append(str(ConfirmElectionMessage(self.id, self.leader['id'], self.leader['stamp'])))
