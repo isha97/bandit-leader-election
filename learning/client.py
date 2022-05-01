@@ -3,10 +3,12 @@ import time
 
 from .node import Node
 from learning.message import *
+from utils.logger import ViewChangeLogger
 from _thread import *
 import socket
 import threading
 
+lock = threading.Lock()
 
 class Client(Node):
     def __init__(self, id, n, config):
@@ -22,7 +24,7 @@ class Client(Node):
         self.message_buffer = {}
         self.num_leader_election = 0 # total number of times the leader election happens
         self.num_requests = config.client.num_requests
-        logging.basicConfig(level=logging.DEBUG,
+        logging.basicConfig(level=logging.INFO,
                             format='%(asctime)s %(levelname)-8s [Client] %(funcName)s() %(message)s',
                             datefmt='%Y-%m-%d %H:%M:%S', handlers=[
                                 logging.FileHandler("logs/client.log"),
@@ -36,6 +38,7 @@ class Client(Node):
         if message.stamp > self.leader['stamp']:
             self.leader['id'] = message.leader
             self.leader['stamp'] = message.stamp
+            self.view_change_logger.tick(message.stamp, message.sender)
             logging.info("[Leader] Changed leader to {} @ {}".format(self.leader['id'], self.leader['stamp']))
 
         logging.info("[RECV][LeaderElec] ConfirmElectionMsg from: {} @ {}, msg: {}"
@@ -48,6 +51,7 @@ class Client(Node):
             if self.leader['stamp'] < message.stamp:
                 self.leader['id'] = message.sender
                 self.leader['stamp'] = message.stamp
+                self.view_change_logger.tick(message.stamp, message.sender)
                 logging.info("[Leader] Changed leader to {} @ {}".format(self.leader['id'], self.leader['stamp']))
 
         requestId = message.requestId
@@ -84,6 +88,7 @@ class Client(Node):
         """Receive message thread"""
         host = '127.0.0.1'
         port = self.client_port
+        self.view_change_logger = ViewChangeLogger(time.time()*100, self.total_nodes)
         receiving_socket = socket.socket()
         try:
             receiving_socket.bind((host, port))
@@ -143,7 +148,7 @@ class Client(Node):
             if prev_request != i:
                 self.send_request(i)
             prev_request = i
-            time.sleep(5)
+            time.sleep(2)
             if i in self.message_buffer.keys():
                 logging.info("[Status] Verified received ResponseMsg ID: {}".format(i))
                 del self.message_buffer[i]
@@ -153,12 +158,16 @@ class Client(Node):
                 self.send_request_broadcast(i)
                 self.num_leader_election += 1 # Every time a client sends a broadcast, it means the leader failed and election will happen
                 is_broadcast = True
-            time.sleep(5)
+                time.sleep(6)
             if is_broadcast:
                 # If the client broadcasted the request and the leader still didn't change, it will re-send the same request
                 if int(current_leader) != int(self.leader['id']):
                     logging.info("[Status] New Leader elected, next request ID...")
                     i += 1
 
+        self.view_change_logger.save('client_view_changes')
+        lock.acquire()
+        self.run = False
+        lock.release()
         print("Total Requests : {}, Number of Leader Elections : {}", self.num_requests, self.num_leader_election)
-
+        logging.info("Total Requests : {}, Number of Leader Elections : {}".format(self.num_requests, self.num_leader_election))

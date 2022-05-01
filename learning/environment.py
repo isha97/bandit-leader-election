@@ -31,7 +31,7 @@ class Environment:
         self.run = False
         self.ports = [int(self.replica_base_port) + i for i in range(n)]
 
-        logging.basicConfig(level=logging.DEBUG,
+        logging.basicConfig(level=logging.INFO,
             format='[%(asctime)s %(levelname)-8s [ENV] %(funcName)s() %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S', handlers=[
                 logging.FileHandler("logs/env.log"),

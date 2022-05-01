@@ -6,6 +6,7 @@ from numpy.random import default_rng
 import logging
 import socket
 from .message import *
+from utils.logger import FailureLogger
 from .environment import Environment
 
 lock = threading.Lock()
@@ -39,15 +40,19 @@ class Environmentv2(Environment):
         self.set_probability()
 
     def sleep_for_repair(self, node_id):
-        repair_duration = self.rng.lognormal(self.repair_time_mean, self.repair_time_sigma) # sample from repair_distribution
-        repair_duration *= self.repair_scale_factor
-        repair_duration = min(repair_duration, 60)
-        repair_duration = max(repair_duration, 10)
-        logging.info("[Status] Node {} for {} secs.".format(node_id, repair_duration))
-        time.sleep(repair_duration)
-        lock.acquire()
-        self.machine_status[node_id] = 1
-        lock.release()
+        try:
+            repair_duration = self.rng.lognormal(self.repair_time_mean, self.repair_time_sigma) # sample from repair_distribution
+            repair_duration *= self.repair_scale_factor
+            repair_duration = min(repair_duration, 30)
+            repair_duration = max(repair_duration, 7)
+            logging.info("[Status] Node {} for {} secs.".format(node_id, repair_duration))
+            time.sleep(repair_duration)
+            lock.acquire()
+            self.machine_status[node_id] = 1
+            lock.release()
+        except KeyboardInterrupt:
+            print('Evironment is shutting down!')
+            self.logger.save('env_fails')
 
 
     def set_probability(self):
@@ -61,50 +66,58 @@ class Environmentv2(Environment):
 
     def fail_nodes(self):
         """Fail up to f nodes"""
-        while self.run:
-            # Sample from binomial dist. (p = node failure prob.)
-            alive_nodes = np.where(self.machine_status == 1) # returns indices of all alive nodes
-            indices = []
+        self.logger = FailureLogger(time.time()*100, self.total_nodes, self.failure_probability)
+        try:
+            while self.run:
+                # Sample from binomial dist. (p = node failure prob.)
+                alive_nodes = np.where(self.machine_status == 1) # returns indices of all alive nodes
+                indices = []
 
-            # we should fail atleast some nodes
-            while len(indices) + (self.total_nodes - np.sum(self.machine_status)) < self.min_fail_fraction*self.max_failed_nodes:
+                # we should fail atleast some nodes
+                while len(indices) + (self.total_nodes - np.sum(self.machine_status)) < self.min_fail_fraction*self.max_failed_nodes:
 
-                # Decide to fail or not
-                for idx, val in enumerate(self.failure_probability):
-                    # select a new node (hasn't been selected before) which is alive
-                    if idx not in indices and self.machine_status[idx] == 1 and self.rng.binomial(1, val) == 1:
-                        indices.append(idx)
+                    # Decide to fail or not
+                    for idx, val in enumerate(self.failure_probability):
+                        # select a new node (hasn't been selected before) which is alive
+                        if idx not in indices and self.machine_status[idx] == 1 and self.rng.binomial(1, val) == 1:
+                            indices.append(idx)
 
-            # Random sample to limit nodes failed to self.max_failed_nodes
-            if len(indices) + (self.total_nodes - np.sum(self.machine_status)) > self.max_failed_nodes:
-                indices = self.rng.choice(
-                    indices,
-                    self.max_failed_nodes - (self.total_nodes - np.sum(self.machine_status)),
-                    replace=False
-                )
+                # Random sample to limit nodes failed to self.max_failed_nodes
+                if len(indices) + (self.total_nodes - np.sum(self.machine_status)) > self.max_failed_nodes:
+                    indices = self.rng.choice(
+                        indices,
+                        self.max_failed_nodes - (self.total_nodes - np.sum(self.machine_status)),
+                        replace=False
+                    )
 
-            # Only if there is a node to fail, send a message
-            if len(indices) != 0:
-                # send the failure values to the respective nodes
-                logging.info("[Status] Failed nodes {}".format(indices))
-                host = '127.0.0.1'
-                for port in self.ports:
-                    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    try:
-                        node_id = port - self.replica_base_port
-                        if port - self.replica_base_port in indices:
-                            failVal = "True"
-                            self.machine_status[node_id] = 0
-                            # thread to sleep for repair period and then change machine_status to alive
-                            start_new_thread(self.sleep_for_repair, (node_id, ))
-                        else:
-                            failVal = "True" if self.machine_status[port - self.replica_base_port] == 0 else "False"
-                        logging.info("[SEND] FailureMsg to: {}".format(node_id))
-                        message = str(FailureMessage(-2, 0, time.time()*100, failVal))
-                        s.connect((host, port))
-                        s.send(message.encode('ascii'))
-                        s.close()
-                    except Exception as msg:
-                        logging.error(str(msg) + " while connecting to {}".format(port))
-                        s.close()
-            time.sleep(self.fail_nodes_update)
+                # Only if there is a node to fail, send a message
+                if len(indices) != 0:
+                    b = np.zeros(self.total_nodes)
+                    b[indices] = 1
+                    self.logger.tick(time.time()*100, b)
+                    # send the failure values to the respective nodes
+                    logging.info("[Status] Failed nodes {}".format(indices))
+                    host = '127.0.0.1'
+                    for port in self.ports:
+                        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                        try:
+                            node_id = port - self.replica_base_port
+                            if port - self.replica_base_port in indices:
+                                failVal = "True"
+                                self.machine_status[node_id] = 0
+                                # thread to sleep for repair period and then change machine_status to alive
+                                start_new_thread(self.sleep_for_repair, (node_id, ))
+                            else:
+                                failVal = "True" if self.machine_status[port - self.replica_base_port] == 0 else "False"
+                            logging.info("[SEND] FailureMsg to: {}".format(node_id))
+                            message = str(FailureMessage(-2, 0, time.time()*100, failVal))
+                            s.connect((host, port))
+                            s.send(message.encode('ascii'))
+                            s.close()
+                        except Exception as msg:
+                            logging.error(str(msg) + " while connecting to {}".format(port))
+                            s.close()
+                time.sleep(self.fail_nodes_update)
+        except KeyboardInterrupt:
+            print('Evironment is shutting down!')
+            self.logger.save('env_fails')

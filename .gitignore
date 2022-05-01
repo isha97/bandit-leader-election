@@ -1,5 +1,7 @@
 .idea/
 learning/__pycache__/
 __pycache__/
-logs/
+logs*/
 .DS_Store
+*.png
+*.pbz2
