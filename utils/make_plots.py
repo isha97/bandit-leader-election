@@ -58,12 +58,14 @@ def plot_leader_elections(path):
 
 def plot_fail_est(path, node_id, true_vals=None):
     data_stamp, data = decompress_pickle(path)
+    print(data.shape)
+    print(data.shape[0])
     fig, ax = plt.subplots(dpi=200)
     clrs = sns.color_palette("husl", data.shape[-1])
     for idx, val in enumerate(range(data.shape[-1])):
-        ax.plot(data_stamp - data_stamp[0], data[:, idx], c=clrs[idx], label='FailEst Node {}'.format(idx))
+        ax.plot(np.arange(data.shape[0]), data[:, idx], c=clrs[idx], label='FailEst Node {}'.format(idx))
         if true_vals is not None:
-            ax.hlines(true_vals[idx], xmin=0, xmax=data_stamp[-1] - data_stamp[0], linestyles='dashed', color=clrs[idx], linewidth=1)#, label='True Fail Node {}'.format(idx))
+            ax.hlines(true_vals[idx], xmin=0, xmax=data.shape[0], linestyles='dashed', color=clrs[idx], linewidth=1)#, label='True Fail Node {}'.format(idx))
     ax.legend()
     ax.set_title("Failure Estimates (Node {})".format(node_id))
     ax.set_xlabel('Time')
@@ -73,7 +75,8 @@ def plot_fail_est(path, node_id, true_vals=None):
 
 if __name__=='__main__':
     # Enter true probs before running
-    true_vals = [0.15, 0.7, 0.15, 0.95, 0.7]
+    #true_vals = [0.15, 0.7, 0.15, 0.95, 0.7]
+    true_vals = [0.95, 0.15, 0.15, 0.7,  0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15]
     print("True Failure Probs: {}".format(true_vals))
 
     try:
@@ -82,9 +85,12 @@ if __name__=='__main__':
     except:
         print('Could not find env file')
 
-    files = glob.glob("../FailEst_node_*.pbz2")
-    for f in files:
-        node_id = f.split('.')[-2][-1]
-        plot_fail_est(f, node_id, true_vals)
+    # files = glob.glob("../FailEst_node_*.pbz2")
+    # for f in files:
+    #     node_id = f.split('.')[-2][-1]
+    #     print(node_id)
+    #     plot_fail_est(f, node_id, true_vals)
+
+    plot_fail_est("../FailEst_node_1.pbz2", 1, true_vals)
 
     plot_leader_elections("../client_view_changes.pbz2")

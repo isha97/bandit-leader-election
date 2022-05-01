@@ -30,6 +30,18 @@ class ViewChangeLogger():
         compress_pickle(fname, self.data)
 
 
+class LeaderLogger():
+    def __init__(self, stamp) -> None:
+        self.start_stamp = stamp
+        self.data = np.array([[self.start_stamp, 0, 0]])
+
+    def tick(self, stamp, leader, status):
+        self.data = np.concatenate([self.data, np.array([[stamp, leader, status]])])
+
+    def save(self, fname):
+        compress_pickle(fname, self.data)
+
+
 class FailureLogger():
     def __init__(self, stamp, total_nodes, true_probs) -> None:
         self.start_stamp = stamp

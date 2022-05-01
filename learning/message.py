@@ -167,6 +167,24 @@ class ConfirmElectionMessage(Message):
             self.stamp
             ))
 
+class NewLeaderMessage(Message):
+    def __init__(self, id, leader, stamp):
+        """Broadcast message to confirm sender is leader
+
+            id: id of sender
+            leader: id of leader
+            stamp: time stamp
+        """
+        super().__init__(id, leader, stamp)
+        pass
+
+    def __str__(self):
+        return('[Message]NewLeaderMsg {} {} {}'.format(
+            self.sender,
+            self.leader,
+            self.stamp
+            ))
+
 
 class FailureMessage(Message):
     def __init__(self, id, leader, stamp, failureVal):
@@ -268,6 +286,10 @@ def parse_and_construct(data):
     elif data.startswith("[Message]ReplyBroadcastMsg"):
         data = data.split(" ")
         message = ReplyBroadcastMessage(data[1], data[2], data[3], data[4])
+
+    elif data.startswith("[Message]NewLeaderMsg"):
+        data = data.split(" ")
+        message = NewLeaderMessage(data[1], data[2], data[3])
 
     else:
         # Error parsing message, received unknown

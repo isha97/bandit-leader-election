@@ -3,7 +3,7 @@ import time
 
 from .node import Node
 from learning.message import *
-from utils.logger import ViewChangeLogger
+from utils.logger import ViewChangeLogger, LeaderLogger
 from _thread import *
 import socket
 import threading
@@ -31,6 +31,8 @@ class Client(Node):
                                 logging.StreamHandler()
                                 ]
         )
+        self.candidate_leader = None
+        self.leader_logger = LeaderLogger(time.time()*100)
 
 
     def receive_confirm_election_msg(self, message):
@@ -44,6 +46,11 @@ class Client(Node):
         logging.info("[RECV][LeaderElec] ConfirmElectionMsg from: {} @ {}, msg: {}"
                      .format(message.sender, message.stamp, message))
 
+    def receive_candidate_leader(self, message):
+        logging.info("[RECV][CandidateLeader] NewLeaderMsg from: {} @ {}, msg: {}"
+                     .format(message.sender, message.stamp, message))
+        if self.candidate_leader is None:
+            self.candidate_leader = message.leader
 
     def receive_response_msg(self, message):
         """Receive response for request."""
@@ -74,6 +81,9 @@ class Client(Node):
 
             elif isinstance(message, ResponseMessage):
                 self.receive_response_msg(message)
+
+            elif isinstance(message, NewLeaderMessage):
+                self.receive_candidate_leader(message)
 
             elif isinstance(message, type(None)):
                 logging.warning("Error parsing message, received unknown: {}".format(message))
@@ -154,6 +164,7 @@ class Client(Node):
                 del self.message_buffer[i]
                 i += 1  # next request id
             else:
+                self.candidate_leader = None
                 logging.info("[Status] Not received ResponseMsg ID: {}".format(i))
                 self.send_request_broadcast(i)
                 self.num_leader_election += 1 # Every time a client sends a broadcast, it means the leader failed and election will happen
@@ -164,6 +175,14 @@ class Client(Node):
                 if int(current_leader) != int(self.leader['id']):
                     logging.info("[Status] New Leader elected, next request ID...")
                     i += 1
+                    # log self.local_leader and set it to None with status as not failed
+                    self.leader_logger.tick(time.time()*100, self.candidate_leader, 0)
+                    self.candidate_leader = None
+                else:
+                    # log self.local_leader and set it to None with status as failed
+                    self.leader_logger.tick(time.time()*100, self.candidate_leader, 1)
+                    self.candidate_leader = None
+
 
         self.view_change_logger.save('client_view_changes')
         lock.acquire()

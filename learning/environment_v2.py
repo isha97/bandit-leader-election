@@ -31,6 +31,7 @@ class Environmentv2(Environment):
         self.scaling_constant = config.cluster_configuration.scaling_constant
 
         self.machine_ids = np.arange(self.total_nodes)
+        # for nodes 11 : [0.95, 0.7, 0.15 , 0.15, 0.15, ]
         self.machine_types = np.argmax(self.rng.multinomial(1, self.machine_dist, size=self.total_nodes), axis=-1)
         self.machine_status = np.array([1 for _ in range(self.total_nodes)]) # 0 is dead, 1 is alive
         self.repair_time_mean = config.cluster_configuration.repair_time_mean
@@ -57,6 +58,7 @@ class Environmentv2(Environment):
 
     def set_probability(self):
         """Set failure probability of each node"""
+        self.machine_types[0] = 4
         for i in range(self.total_nodes):
             self.failure_probability[i] = self.base_failure_prob[self.machine_types[i]]*self.scaling_constant
         logging.info("[FailEst] Init. Failure probability {}".format(
