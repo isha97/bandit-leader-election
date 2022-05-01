@@ -56,9 +56,14 @@ Total Requests : {}, Number of Leader Elections : {} 2000 34
 2022-05-01 11:08:21 INFO     [Client] run_node() Total Requests : 2000, Number of Leader Elections : 34 - Deterministic
 
 
-
+[0.95 0.15 0.15 0.7  0.15 0.15 0.15 0.15 0.15 0.15 0.15]
 Total Requests : {}, Number of Leader Elections : {} 2000 83
 2022-05-01 12:27:06 INFO     [Client] run_node() Total Requests : 2000, Number of Leader Elections : 83 - Deterministic 11 nodes
+
+Total Requests : {}, Number of Leader Elections : {} 2000 64
+2022-05-01 13:45:51 INFO     [Client] run_node() Total Requests : 2000, Number of Leader Elections : 64 : Learning based 11 nodes
+
+
 
 
 

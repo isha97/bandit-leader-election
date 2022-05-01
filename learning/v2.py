@@ -153,10 +153,10 @@ class v2(Node):
         #     return self.rng.choice(self.total_nodes, size=1, replace=False)[0]
         # elif self.explore_exploit == 'UCB':
         choice = np.argmax(
-                self.tradeoff*np.sqrt(np.log(self.t)/self.arm_counts)
+              self.failure_estimates + self.tradeoff*np.sqrt(np.log(self.t)/self.arm_counts)
         )
         self.t += 1
-        self.arm_counts[choice] += 1
+        # self.arm_counts[choice] += 1
         return choice
 
     def penalize(self):
@@ -536,6 +536,8 @@ class v2(Node):
                 self.local_leader = np.argsort(np.bincount(candidate_np))[-2]
             lock.release()
             logging.info("[LeaderElec] Got enough ShareCandidatesMsg's, New leader: {}".format(self.local_leader))
+            self.send_unicast(str(NewLeaderMessage(self.id, self.local_leader, time.time() * 100)),
+                              self.client_port)
 
             # If we are the leader, broadcast candidate acceptance if we
             # are not failed
@@ -560,6 +562,7 @@ class v2(Node):
         ----
             id (int): Node ID to update.
         """
+        self.arm_counts[int(id)] += 1
         self.failure_estimates[id] = \
             (self.failure_estimates[id] * self.node_count[id]) / (self.node_count[id] + 1)
         self.node_count[id] += 1
@@ -574,6 +577,7 @@ class v2(Node):
         ----
             id (int): Node ID to update.
         """
+        self.arm_counts[int(id)] += 1
         self.failure_estimates[id] = \
             (self.failure_estimates[id] * self.node_count[id] + 1) / (self.node_count[id] + 1)
         self.node_count[id] += 1

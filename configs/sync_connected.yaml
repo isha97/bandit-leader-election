@@ -1,7 +1,7 @@
 num_faulty_nodes: 5 # f
 num_nodes: 11 # >= 2f + 1
 min_fail_fraction: 0.8 # Minimum fraction of nodes to atleast fail at each round
-random_seed : 10
+random_seed : 100
 
 stationary: True # Node failure probability 
 fail_nodes_update: 30 # Time between node failures
@@ -52,7 +52,7 @@ node:
 # Environment configurations
 cluster_configuration:
   num_nodes: [463, 2025, 1114, 717, 810]  # Node dist. of each PM type
-  base : [0.95, 0.15, 0.7, 0.15, 0.8]     # Node failure of each PM type
+  base : [0.95, 0.15, 0.7, 0.2, 0.8]     # Node failure of each PM type
   scaling_constant : 1                  # Scale failure rate
 
   # Repair time - Gamma dist. params
