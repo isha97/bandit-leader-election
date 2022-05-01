@@ -90,7 +90,8 @@ class v2(Node):
         logging.basicConfig(level=logging.INFO,
             format='%(asctime)s %(levelname)-8s [Node {}] %(funcName)s() %(message)s'.format(self.id),
             datefmt='%Y-%m-%d %H:%M:%S', handlers=[
-                logging.FileHandler('logs/node_{}.log'.format(self.id)),
+                logging.FileHandler('logs/node_{}_{}_{}.log'.format(self.id, self.total_nodes,
+                                                                    self.explore_exploit)),
                 logging.StreamHandler()
                 ]
         )

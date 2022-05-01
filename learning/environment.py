@@ -34,7 +34,7 @@ class Environment:
         logging.basicConfig(level=logging.INFO,
             format='[%(asctime)s %(levelname)-8s [ENV] %(funcName)s() %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S', handlers=[
-                logging.FileHandler("logs/env.log"),
+                logging.FileHandler("logs/env_{}_{}.log".format(self.total_nodes, config.mab.algo)),
                 logging.StreamHandler()
                 ]
         )

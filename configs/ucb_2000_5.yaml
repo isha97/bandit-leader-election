@@ -1,0 +1,61 @@
+num_faulty_nodes: 2 # f
+num_nodes: 5 # >= 2f + 1
+min_fail_fraction: 0.8 # Minimum fraction of nodes to atleast fail at each round
+random_seed : 100
+
+stationary: True # Node failure probability 
+fail_nodes_update: 30 # Time between node failures
+failure_update: 15 # Time between updating node failure rate
+
+# Type of election algorithm to use
+election_algorithm : 'Learning'
+
+# Failure prob set by environment
+fail_prob:
+  # Initial prob.
+  init:
+    mean: 0.2
+    std: 0.1
+  # Update delta prob. (for non-stationary model)
+  update:
+    mean: 0.05
+    std: 0.01
+    inc_split: 0.5 # Fraction of nodes to increase failure prob
+
+# Initial failure estimates
+failure_estimates:
+  mean: 0.1
+  std: 0.05
+
+# MAB parameters
+mab:
+  epsilon: 0.1
+  decay: 0.99
+  alpha: 0.1
+  algo: 'UCB-penalize' # egreedy/UCB/UCB-penalize
+  c: 2 # for UCB/UCB-penalize
+
+# client
+client:
+  num_requests: 2000
+
+# ports
+port:
+  client_port: 60000
+  replica_base_port: 49154
+
+# Replicas
+node:
+  ping_sleep_sec : 10 # duration between two ping message a node sends
+  ping_sleep_reply: 2 # duration betweem ping and reponse message
+
+# Environment configurations
+cluster_configuration:
+  num_nodes: [463, 2025, 1114, 717, 810]  # Node dist. of each PM type
+  base : [0.95, 0.15, 0.7, 0.2, 0.8]     # Node failure of each PM type
+  scaling_constant : 1                  # Scale failure rate
+
+  # Repair time - Gamma dist. params
+  repair_time_mean : 1.80
+  repair_time_stdev : 2.07
+  scaling_repair_time_constant : 1        # Scale

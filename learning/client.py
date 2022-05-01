@@ -27,7 +27,8 @@ class Client(Node):
         logging.basicConfig(level=logging.INFO,
                             format='%(asctime)s %(levelname)-8s [Client] %(funcName)s() %(message)s',
                             datefmt='%Y-%m-%d %H:%M:%S', handlers=[
-                                logging.FileHandler("logs/client.log"),
+                                logging.FileHandler("logs/client_{}_{}.log".format(self.total_nodes,
+                                                                                   config.mab.algo)),
                                 logging.StreamHandler()
                                 ]
         )
