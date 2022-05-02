@@ -1,5 +1,5 @@
 import time
-
+from os.path import join
 import numpy as np
 from numpy.random import default_rng
 from enum import Enum
@@ -35,6 +35,7 @@ class v2(Node):
         # Node properties
         self.is_failed = False
         self.previous_fail_status = False
+        self.name = '{}_{}_{}'.format(self.id, self.total_nodes, self.explore_exploit)
 
         # MAB parameters
         self.epsilon = config.mab.epsilon
@@ -605,4 +606,4 @@ class v2(Node):
         lock.acquire()
         self.run = False
         lock.release()
-        self.fail_est_logger.save('FailEst_node_{}'.format(self.id))
+        self.fail_est_logger.save(join('..', self.name, '_failEst.pbz2'))

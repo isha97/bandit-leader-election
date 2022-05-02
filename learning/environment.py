@@ -18,6 +18,7 @@ class Environment:
             config: config parameters
         """
         self.total_nodes = n
+        self.name = "{}_{}".format(self.total_nodes, config.mab.algo)
         self.failure_probability = np.zeros(n)
         self.max_failed_nodes = int((n - 1)/2)
         self.fail_nodes_update = config.fail_nodes_update

@@ -1,5 +1,6 @@
 import logging
 import time
+from os.path import join
 
 from .node import Node
 from learning.message import *
@@ -21,6 +22,7 @@ class Client(Node):
         super().__init__(id, n, config)
 
         self.run = True
+        self.name = "{}-{}".format(self.total_nodes, config.mab.algo)
         self.message_buffer = {}
         self.num_leader_election = 0 # total number of times the leader election happens
         self.num_requests = config.client.num_requests
@@ -185,7 +187,8 @@ class Client(Node):
                     self.candidate_leader = None
 
 
-        self.view_change_logger.save('client_view_changes')
+        self.view_change_logger.save(join('..', self.name, '_view_changes.pbz2'))
+        self.leader_logger.save(join(self.name, 'leader_log.pbz2'))
         lock.acquire()
         self.run = False
         lock.release()

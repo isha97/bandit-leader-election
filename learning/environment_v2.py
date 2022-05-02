@@ -1,4 +1,5 @@
 import numpy as np
+from os.path import join
 import time
 from _thread import *
 import threading
@@ -122,4 +123,4 @@ class Environmentv2(Environment):
                 time.sleep(self.fail_nodes_update)
         except KeyboardInterrupt:
             print('Evironment is shutting down!')
-            self.logger.save('env_fails')
+            self.logger.save(join('..', self.name, '_env_failures.pbz2'))

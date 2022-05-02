@@ -58,8 +58,6 @@ def plot_leader_elections(path):
 
 def plot_fail_est(path, node_id, true_vals=None):
     data_stamp, data = decompress_pickle(path)
-    print(data.shape)
-    print(data.shape[0])
     fig, ax = plt.subplots(dpi=200)
     clrs = sns.color_palette("husl", data.shape[-1])
     for idx, val in enumerate(range(data.shape[-1])):
