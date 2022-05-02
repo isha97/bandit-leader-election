@@ -31,6 +31,12 @@ if __name__ == "__main__":
         default=500,
         help='Duration to keep env and nodes running'
     )
+    parser.add_argument(
+        '-e',
+        '--exp_name',
+        type=str,
+        help='Name of experiment'
+    )
     args = parser.parse_args()
 
     with open(args.config) as f:
@@ -39,18 +45,18 @@ if __name__ == "__main__":
 
     type = args.type
     if type == 'env':
-        env = Environment(config.num_nodes, config)
+        env = Environment(config.num_nodes, config, args.exp_name)
         env.run_threads()
         # time.sleep(args.duration)
         # env.stop_threads()
 
     elif type.startswith('node'):
         node_id = type.split("_")[1]
-        node = Node(int(node_id), config.num_nodes, config)
+        node = Node(int(node_id), config.num_nodes, config, args.exp_name)
         node.run_node()
         # time.sleep(args.duration)
         # node.stop_node()
 
     elif type == 'client':
-        client = Client(-1, config.num_nodes, config)
+        client = Client(-1, config.num_nodes, config, args.exp_name)
         client.run_node()

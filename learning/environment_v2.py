@@ -7,13 +7,14 @@ from numpy.random import default_rng
 import logging
 import socket
 from .message import *
-from utils.logger import FailureLogger
+from utils.logger import FailureLogger, make_dirs
 from .environment import Environment
+
 
 lock = threading.Lock()
 
 class Environmentv2(Environment):
-    def __init__(self, n, config):
+    def __init__(self, n, config, exp_name):
         """Initialize environment
 
             n: total number of nodes
@@ -21,7 +22,7 @@ class Environmentv2(Environment):
             nodes: List of node objects
             config: config parameters
         """
-        super().__init__(n, config=config)
+        super().__init__(n, config, exp_name)
         self.seed = config.random_seed
 
         self.rng = default_rng(self.seed)
@@ -54,7 +55,7 @@ class Environmentv2(Environment):
             lock.release()
         except KeyboardInterrupt:
             print('Evironment is shutting down!')
-            self.logger.save('env_fails')
+            self.logger.save('env_fails_{}_{}'.format(self.total_nodes, self.config.mab.algo))
 
 
     def set_probability(self):
@@ -123,4 +124,5 @@ class Environmentv2(Environment):
                 time.sleep(self.fail_nodes_update)
         except KeyboardInterrupt:
             print('Evironment is shutting down!')
-            self.logger.save(join('..', self.name, '_env_failures.pbz2'))
+            make_dirs(join(self.exp_name))
+            self.logger.save(join(self.exp_name, 'env_failures.pbz2'))

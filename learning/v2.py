@@ -6,7 +6,7 @@ from enum import Enum
 
 from .node import Node
 from .message import *
-from utils.logger import FailureEstimatesLogger
+from utils.logger import FailureEstimatesLogger, make_dirs
 from _thread import *
 import threading
 import socket
@@ -23,19 +23,18 @@ class Election_Algorithm(Enum):
 
 
 class v2(Node):
-    def __init__(self, id, n, config):
+    def __init__(self, id, n, config, exp_name):
         """Initialize node
 
             id: Node id
             n: total number of nodes
             config: config parameters
         """
-        super().__init__(id, n, config)
+        super().__init__(id, n, config, exp_name)
 
         # Node properties
         self.is_failed = False
         self.previous_fail_status = False
-        self.name = '{}_{}_{}'.format(self.id, self.total_nodes, self.explore_exploit)
 
         # MAB parameters
         self.epsilon = config.mab.epsilon
@@ -91,8 +90,7 @@ class v2(Node):
         logging.basicConfig(level=logging.INFO,
             format='%(asctime)s %(levelname)-8s [Node {}] %(funcName)s() %(message)s'.format(self.id),
             datefmt='%Y-%m-%d %H:%M:%S', handlers=[
-                logging.FileHandler('logs/node_{}_{}_{}.log'.format(self.id, self.total_nodes,
-                                                                    self.explore_exploit)),
+                logging.FileHandler('logs/node_{}_{}.log'.format(self.id, self.exp_name)),
                 logging.StreamHandler()
                 ]
         )
@@ -606,4 +604,5 @@ class v2(Node):
         lock.acquire()
         self.run = False
         lock.release()
-        self.fail_est_logger.save(join('..', self.name, '_failEst.pbz2'))
+        make_dirs(join(self.exp_name))
+        self.fail_est_logger.save(join(self.exp_name, 'failEst_{}.pbz2'.format(self.id)))

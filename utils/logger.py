@@ -5,6 +5,12 @@ import seaborn as sns
 import bz2
 import pickle
 import _pickle as cPickle
+import pathlib
+
+
+def make_dirs(path):
+    pathlib.Path(path).mkdir(parents=True, exist_ok=True)
+
 
 def compress_pickle(file, data):
     with bz2.BZ2File(file, 'wb') as f: 

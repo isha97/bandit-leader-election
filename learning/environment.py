@@ -9,7 +9,7 @@ from .message import *
 lock = threading.Lock()
 
 class Environment:
-    def __init__(self, n, config):
+    def __init__(self, n, config, exp_name=None):
         """Initialize environment
 
             n: total number of nodes
@@ -18,7 +18,8 @@ class Environment:
             config: config parameters
         """
         self.total_nodes = n
-        self.name = "{}_{}".format(self.total_nodes, config.mab.algo)
+        self.exp_name = "{}_{}".format(self.total_nodes, config.mab.algo) \
+                            if exp_name is None else exp_name
         self.failure_probability = np.zeros(n)
         self.max_failed_nodes = int((n - 1)/2)
         self.fail_nodes_update = config.fail_nodes_update
@@ -28,6 +29,7 @@ class Environment:
         self.update_prob = config.fail_prob.update
         self.min_fail_fraction = config.min_fail_fraction
         self.replica_base_port = config.port.replica_base_port
+        self.config = config
 
         self.run = False
         self.ports = [int(self.replica_base_port) + i for i in range(n)]
@@ -35,7 +37,7 @@ class Environment:
         logging.basicConfig(level=logging.INFO,
             format='[%(asctime)s %(levelname)-8s [ENV] %(funcName)s() %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S', handlers=[
-                logging.FileHandler("logs/env_{}_{}.log".format(self.total_nodes, config.mab.algo)),
+                logging.FileHandler("logs/env_{}.log".format(self.exp_name)),
                 logging.StreamHandler()
                 ]
         )

@@ -4,7 +4,7 @@ from os.path import join
 
 from .node import Node
 from learning.message import *
-from utils.logger import ViewChangeLogger, LeaderLogger
+from utils.logger import ViewChangeLogger, LeaderLogger, make_dirs
 from _thread import *
 import socket
 import threading
@@ -12,25 +12,23 @@ import threading
 lock = threading.Lock()
 
 class Client(Node):
-    def __init__(self, id, n, config):
+    def __init__(self, id, n, config, exp_name):
         """Initialize client node
 
             id: Node id (-1 for client)
             n: total number of nodes
             config: config parameters
         """
-        super().__init__(id, n, config)
+        super().__init__(id, n, config, exp_name)
 
         self.run = True
-        self.name = "{}-{}".format(self.total_nodes, config.mab.algo)
         self.message_buffer = {}
         self.num_leader_election = 0 # total number of times the leader election happens
         self.num_requests = config.client.num_requests
         logging.basicConfig(level=logging.INFO,
                             format='%(asctime)s %(levelname)-8s [Client] %(funcName)s() %(message)s',
                             datefmt='%Y-%m-%d %H:%M:%S', handlers=[
-                                logging.FileHandler("logs/client_{}_{}.log".format(self.total_nodes,
-                                                                                   config.mab.algo)),
+                                logging.FileHandler("logs/client_{}.log".format(self.exp_name)),
                                 logging.StreamHandler()
                                 ]
         )
@@ -108,6 +106,7 @@ class Client(Node):
         except socket.error as e:
             logging.error(str(e))
         receiving_socket.listen(5)
+        #receiving_socket.settimeout(30)
         while self.run:
             Client, address = receiving_socket.accept()
             start_new_thread(self.multi_threaded_client, (Client,))
@@ -187,8 +186,9 @@ class Client(Node):
                     self.candidate_leader = None
 
 
-        self.view_change_logger.save(join('..', self.name, '_view_changes.pbz2'))
-        self.leader_logger.save(join(self.name, 'leader_log.pbz2'))
+        make_dirs(join(self.exp_name))
+        self.view_change_logger.save(join(self.exp_name, 'client_view_changes.pbz2'))
+        self.leader_logger.save(join(self.exp_name, 'leader_log.pbz2'))
         lock.acquire()
         self.run = False
         lock.release()

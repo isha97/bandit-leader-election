@@ -2,7 +2,7 @@ import time
 
 
 class Node(object):
-    def __init__(self, id, n, config):
+    def __init__(self, id, n, config, exp_name=None):
         """Initialize node
 
             id: Node id
@@ -12,9 +12,12 @@ class Node(object):
         self.id = id
         self.total_nodes = n
         self.ports = [int(config.port.replica_base_port) + i for i in range(n)]
+        self.exp_name = "{}_{}".format(self.total_nodes, config.mab.algo) \
+                            if exp_name is None else exp_name
 
         # client port
         self.client_port = config.port.client_port
+        self.config = config
 
         # [timestamp, Initial Leader ID]
         self.leader = {'stamp': time.time()*100, 'id': 0}
