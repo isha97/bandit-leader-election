@@ -15,6 +15,7 @@ class Node(object):
 
         # client port
         self.client_port = config.port.client_port
+        self.config = config
 
         # [timestamp, Initial Leader ID]
         self.leader = {'stamp': time.time()*100, 'id': 0}

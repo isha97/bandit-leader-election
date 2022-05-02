@@ -605,4 +605,5 @@ class v2(Node):
         lock.acquire()
         self.run = False
         lock.release()
-        self.fail_est_logger.save('FailEst_node_{}'.format(self.id))
+        self.fail_est_logger.save('FailEst_node_{}_{}_{}'.format(self.id, self.total_nodes,
+                                                                 self.config.mab.algo))

@@ -106,6 +106,7 @@ class Client(Node):
         except socket.error as e:
             logging.error(str(e))
         receiving_socket.listen(5)
+        #receiving_socket.settimeout(30)
         while self.run:
             Client, address = receiving_socket.accept()
             start_new_thread(self.multi_threaded_client, (Client,))
@@ -185,7 +186,8 @@ class Client(Node):
                     self.candidate_leader = None
 
 
-        self.view_change_logger.save('client_view_changes')
+        self.view_change_logger.save('client_view_changes_{}_{}'.format(self.total_nodes, self.config.mab.algo))
+        self.leader_logger.save('leader_election_rounds_{}_{}'.format(self.total_nodes, self.config.mab.algo))
         lock.acquire()
         self.run = False
         lock.release()

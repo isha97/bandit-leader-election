@@ -53,7 +53,7 @@ class Environmentv2(Environment):
             lock.release()
         except KeyboardInterrupt:
             print('Evironment is shutting down!')
-            self.logger.save('env_fails')
+            self.logger.save('env_fails_{}_{}'.format(self.total_nodes, self.config.mab.algo))
 
 
     def set_probability(self):
@@ -122,4 +122,4 @@ class Environmentv2(Environment):
                 time.sleep(self.fail_nodes_update)
         except KeyboardInterrupt:
             print('Evironment is shutting down!')
-            self.logger.save('env_fails')
+            self.logger.save('env_fails_{}_{}'.format(self.total_nodes, self.config.mab.algo))
