@@ -60,12 +60,14 @@ class Environmentv2(Environment):
 
     def set_probability(self):
         """Set failure probability of each node"""
-        self.machine_types[0] = 4
         for i in range(self.total_nodes):
             self.failure_probability[i] = self.base_failure_prob[self.machine_types[i]]*self.scaling_constant
+        temp = self.failure_probability[0]
+        self.failure_probability[0] = self.failure_probability[1]
+        self.failure_probability[1] = temp
         logging.info("[FailEst] Init. Failure probability {}".format(
             np.array2string(self.failure_probability)
-            ))
+        ))
 
 
     def fail_nodes(self):
