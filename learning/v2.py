@@ -155,7 +155,6 @@ class v2(Node):
         choice = np.argmax(
               self.failure_estimates + self.tradeoff*np.sqrt(np.log(self.t)/self.arm_counts)
         )
-        self.t += 1
         # self.arm_counts[choice] += 1
         return choice
 
@@ -566,6 +565,7 @@ class v2(Node):
         self.failure_estimates[id] = \
             (self.failure_estimates[id] * self.node_count[id]) / (self.node_count[id] + 1)
         self.node_count[id] += 1
+        self.t += 1
         self.fail_est_logger.tick(time.time()*100, self.failure_estimates)
         logging.info("[FailEst DOWN] Updating Node: {} New FailEst: {}".format(id, self.failure_estimates))
 
@@ -581,6 +581,7 @@ class v2(Node):
         self.failure_estimates[id] = \
             (self.failure_estimates[id] * self.node_count[id] + 1) / (self.node_count[id] + 1)
         self.node_count[id] += 1
+        self.t += 1
         self.fail_est_logger.tick(time.time()*100, self.failure_estimates)
         logging.info("[FailEst UP] Updating Node: {} New FailEst: {}".format(id, self.failure_estimates))
 
