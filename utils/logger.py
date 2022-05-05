@@ -61,7 +61,7 @@ class FailureLogger():
         self.data = np.concatenate([self.data, np.array([value])])
 
     def save(self, file):
-        compress_pickle(file, [self.data_stamp, self.data, self.true_probs])
+        compress_pickle(file, [self.data_stamp, self.data, self.true])
 
 
 class FailureEstimatesLogger():
