@@ -32,8 +32,8 @@ mab:
   epsilon: 0.1
   decay: 0.99
   alpha: 0.1
-  algo: 'egreedy' # egreedy/UCB
-  c: 2 # for UCB
+  algo: 'UCB-penalize' # egreedy/UCB/UCB-penalize
+  c: 2 # for UCB/UCB-penalize
 
 # client
 client:
@@ -51,8 +51,8 @@ node:
 
 # Environment configurations
 cluster_configuration:
-  num_nodes: [463, 2025, 1114, 717, 810]  # Node dist. of each PM type
-  base : [0.95, 0.15, 0.7, 0.2, 0.8]     # Node failure of each PM type
+  num_nodes: [3000, 2500, 2000, 9000, 5000]  # Node dist. of each PM type
+  base : [0.9, 0.7, 0.3, 0.2, 0.15]     # Node failure of each PM type
   scaling_constant : 1                  # Scale failure rate
 
   # Repair time - Gamma dist. params

@@ -1,7 +1,7 @@
 num_faulty_nodes: 2 # f
 num_nodes: 5 # >= 2f + 1
 min_fail_fraction: 0.8 # Minimum fraction of nodes to atleast fail at each round
-random_seed : 100
+random_seed : 10
 
 stationary: True # Node failure probability 
 fail_nodes_update: 30 # Time between node failures
