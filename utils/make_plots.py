@@ -1,28 +1,42 @@
 import argparse
 import numpy as np
-import seaborn as sns
-
 import matplotlib
 # switch to pgf backend
 matplotlib.use('pgf')
 # import matplotlib
 import matplotlib.pyplot as plt
 
-plt.rcParams['xtick.direction'] = 'out'
-plt.rcParams['ytick.direction'] = 'out'
-plt.rcParams['axes.spines.top'] = False
-plt.rcParams['axes.spines.right'] = False
-
 from os.path import join
-
-import time
 import numpy as np
-from logger import ViewChangeLogger, FailureEstimatesLogger
 
 import bz2
 import pickle
 import _pickle as cPickle
 import glob
+
+plt.rcParams['xtick.direction'] = 'out'
+plt.rcParams['ytick.direction'] = 'out'
+plt.rcParams['axes.spines.top'] = False
+plt.rcParams['axes.spines.right'] = False
+
+SMALL_SIZE = 8
+MEDIUM_SIZE = 10
+BIGGER_SIZE = 12
+
+plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
+plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
+plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
+plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
+plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+plt.rc('axes', titlesize=BIGGER_SIZE)
+
+plt.rcParams.update({
+    "text.usetex": True,
+    "font.family": "sans-serif",
+    "font.sans-serif": ["Helvetica"]
+})
 
 
 def decompress_pickle(file):
@@ -31,53 +45,40 @@ def decompress_pickle(file):
     return data
 
 
-def test():
-    logger = ViewChangeLogger(time.time()*100, 10)
-    i = 0
-    while i < 10:
-        time.sleep(np.random.randint(1, 4))
-        logger.tick(time.time()*100, np.random.randint(0, 10))
-        print(i)
-        i += 1
-    logger.plot('save.png')
-
-    prev = np.random.rand(4)
-    logger = FailureEstimatesLogger(time.time()*100, prev, [0.9, 0.4, 0.2, 0.1])
-    i = 0
-    while i < 10:
-        time.sleep(np.random.randint(1, 4))
-        prev += 0.1*np.random.rand(4)
-        logger.tick(time.time()*100, prev)
-        print(i)
-        i += 1
-    logger.plot('save_est.png')
-
-
-def plot_leader_elections(path):
+def plot_leader_elections(path, fmt='png'):
     data = decompress_pickle(path)
+    data1 = decompress_pickle(join(args.path, 'leader_log.pbz2'))
+    failed_election_idxs = np.where(data1[:, -1] == 1)[0]
+
     fig, ax = plt.subplots(dpi=200)
-    with sns.axes_style('dark'):
-        ax.scatter(data[:, 0] - data[0, 0], data[:, 1], marker='|', s=200)
-        ax.set_title("Leader Elections")
-        ax.set_xlabel('Time')
-        fig.tight_layout()
-        fig.savefig(join(args.path, 'client_le.png'))
+    ax.scatter(data[:, 0] - data[0, 0], data[:, 1], marker='o', s=50, c='Green')
+    ax.scatter(data1[failed_election_idxs, 0] - data1[0, 0], data1[failed_election_idxs, 1], marker='*', s=50, c='Red')
+
+    # for fail_idx in failed_election_idxs:
+    #     plt.axvspan(a, b, color='y', alpha=0.5, lw=0)
+
+    # ax.set_title("Leader Elections")
+    ax.set_xlabel('Time')
+    ax.set_ylabel('Node ID')
+    ax.set_yticks(np.arange(23))
+    ax.set_yticklabels(np.arange(23)+1)
+    fig.tight_layout()
+    fig.savefig(join(args.path, 'client_le.{}'.format(fmt)), format=fmt)
 
 
-def plot_fail_est(path, node_id, true_vals=None):
+def plot_fail_est(path, node_id, true_vals=None, fmt='png'):
     data_stamp, data = decompress_pickle(path)
     fig, ax = plt.subplots(dpi=200)
-    clrs = sns.color_palette("husl", data.shape[-1])
-    with sns.axes_style('dark'):
-        for idx, val in enumerate(range(data.shape[-1])):
-            ax.plot(np.arange(data.shape[0]), data[:, idx], c=clrs[idx], label='FailEst Node {}'.format(idx))
-            if true_vals is not None:
-                ax.hlines(true_vals[idx], xmin=0, xmax=data.shape[0], linestyles='dashed', color=clrs[idx], linewidth=1)
-        ax.legend()
-        ax.set_title("Failure Estimates (Node {})".format(node_id))
-        ax.set_xlabel('Time')
-        fig.tight_layout()
-        fig.savefig(join(args.path, 'fest_{}.png'.format(node_id)))
+    for idx, val in enumerate(range(data.shape[-1])):
+        ax.plot(np.arange(data.shape[0]), data[:, idx], label='Node {}'.format(idx))
+        if true_vals is not None:
+            ax.hlines(true_vals[idx], xmin=0, xmax=data.shape[0], linestyles='dashed', linewidth=1)
+    ax.legend()
+    ax.set_title("Failure Estimates (Node {})".format(node_id))
+    ax.set_xlabel('Time')
+    ax.set_ylabel(r'$\displaystylep(f_i)')
+    fig.tight_layout()
+    fig.savefig(join(args.path, 'fest_{}.{}'.format(node_id, fmt)), format=fmt)
 
 
 if __name__=='__main__':
@@ -89,10 +90,10 @@ if __name__=='__main__':
         )
     args = parser.parse_args()
 
-
     # Enter true probs before running
     true_vals = [0.15, 0.7, 0.15, 0.95, 0.7]
     # true_vals = [0.95, 0.15, 0.15, 0.7,  0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15]
+
     print("Using True Failure Probs: {}".format(true_vals))
 
     try:
@@ -101,9 +102,9 @@ if __name__=='__main__':
     except:
         print('Could not find env file!')
 
-    files = glob.glob(join(args.path, "FailEst_node_*.pbz2"))
-    for f in files:
-        node_id = f.split('_')[2].split('.')[0]
-        plot_fail_est(f, node_id, true_vals, args.path)
+    # files = glob.glob(join(args.path, "failEst_*.pbz2"))
+    # for f in files:
+    #     node_id = f.split('/')[-1].split('_')[1].split('.')[0]
+    #     plot_fail_est(f, node_id, true_vals)
 
-    plot_leader_elections(join(args.path, "client_view_changes.pbz2"), args.path)
+    plot_leader_elections(join(args.path, "client_view_changes.pbz2"))
