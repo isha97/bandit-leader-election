@@ -63,24 +63,6 @@ def plot_leader_elections(path, fmt='png'):
 
             arr.append(cnt)
 
-    failure_per_window = []
-    window = 100000
-    for i in range(data1.shape[0]-1):
-            cnt = 1
-            while data1[i+cnt, 0] <= data1[i, 0] + window:
-                cnt += 1
-                if i+cnt >= data1.shape[0]:
-                    break
-
-            failure_per_window.append(cnt)
-
-    fig, ax = plt.subplots(dpi=200)
-    ax.plot(np.arange(len(failure_per_window)), failure_per_window)
-    ax.set_xlabel(r'\# LE rounds')
-    ax.set_ylabel('Frequency')
-    fig.tight_layout()
-    fig.savefig(join(args.path, 'window_le.{}'.format(fmt)), format=fmt)
-
     fig, ax = plt.subplots(dpi=200)
     ax.hist(arr, bins=len(arr))
     ax.set_xlabel(r'\# time between LE rounds')
@@ -89,6 +71,45 @@ def plot_leader_elections(path, fmt='png'):
     ax.set_xticklabels(np.arange(max(arr))+1)
     fig.tight_layout()
     fig.savefig(join(args.path, 'freq_le.{}'.format(fmt)), format=fmt)
+
+    le_per_window = []
+    window = 50000
+    for i in range(0, data1.shape[0]-1, 2):
+            cnt = 1
+            while data1[i+cnt, 0] <= data1[i, 0] + window:
+                cnt += 1
+                if i+cnt >= data1.shape[0]:
+                    break
+
+            le_per_window.append(cnt)
+
+    fig, ax = plt.subplots(dpi=200)
+    ax.plot(np.arange(len(le_per_window)), le_per_window)
+    ax.set_xlabel('Frequency of LE rounds')
+    ax.set_ylabel('Window Steps')
+    fig.tight_layout()
+    fig.savefig(join(args.path, 'window_le.{}'.format(fmt)), format=fmt)
+
+    fail_per_window = []
+    window = 50000
+    for i in range(data1.shape[0]-1):
+            cnt = 1
+            track = 0
+            while data1[i+cnt, 0] <= data1[i, 0] + window:
+                if data1[i+cnt, -1] == 1:
+                    track += 1
+                cnt += 1
+                if i+cnt >= data1.shape[0]:
+                    break
+            fail_per_window.append(track)
+
+    fig, ax = plt.subplots(dpi=200)
+    ax.plot(np.arange(len(fail_per_window)), fail_per_window)
+    ax.set_xlabel('Frequency of Failed LE rounds')
+    ax.set_ylabel('Window Steps')
+    fig.tight_layout()
+    fig.savefig(join(args.path, 'fail_window_le.{}'.format(fmt)), format=fmt)
+
 
     fig, ax = plt.subplots(dpi=200)
     ax.scatter(data[:, 0] - data[0, 0], data[:, 1], marker='o', s=50, c='Green')
