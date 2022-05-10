@@ -13,7 +13,7 @@ from .environment import Environment
 
 lock = threading.Lock()
 
-class Environmentv2(Environment):
+class Environmentv2_Non_Stationary(Environment):
     def __init__(self, n, config, exp_name):
         """Initialize environment
 
@@ -26,6 +26,8 @@ class Environmentv2(Environment):
         self.seed = config.random_seed
 
         self.rng = default_rng(self.seed)
+        self.seed_mt = self.seed
+        self.rng_set_machine_type = default_rng(self.seed_mt)
         self.run = False
         self.machine_dist = config.cluster_configuration.num_nodes
         self.machine_dist/=(np.sum(self.machine_dist))
@@ -59,17 +61,28 @@ class Environmentv2(Environment):
 
     def set_probability(self):
         """Set failure probability of each node"""
-        # change the seed
-        self.machine_types = np.argmax(self.rng.multinomial(1, self.machine_dist, size=self.total_nodes), axis=-1)
+        self.machine_types = np.argmax(self.rng_set_machine_type.multinomial(1, self.machine_dist, size=self.total_nodes), axis=-1)
         for i in range(self.total_nodes):
             self.failure_probability[i] = self.base_failure_prob[self.machine_types[i]]*self.scaling_constant
-        temp = self.failure_probability[0]
-        self.failure_probability[0] = self.failure_probability[1]
-        self.failure_probability[1] = temp
-        # update the log
-        logging.info("[FailEst] Init. Failure probability {}".format(
+        logging.info("[FailEst] Init. Failure probability ".format(
             np.array2string(self.failure_probability)
         ))
+        self.seed_mt  = (self.seed_mt + 10)%100
+        self.rng_set_machine_type = default_rng(self.seed_mt)
+
+    def update_probability(self):
+        while self.run:
+            self.machine_types = np.argmax(
+                self.rng_set_machine_type.multinomial(1, self.machine_dist, size=self.total_nodes), axis=-1)
+            for i in range(self.total_nodes):
+                self.failure_probability[i] = self.base_failure_prob[self.machine_types[i]] * self.scaling_constant
+            logging.info("[FailEst] Failure probability Updated {} at time {}".format(
+                np.array2string(self.failure_probability), time.time() * 100
+            ))
+            self.seed_mt = (self.seed_mt + 10) % 100
+            self.rng_set_machine_type = default_rng(self.seed_mt)
+
+            time.sleep(self.failure_update)
 
 
     def fail_nodes(self):

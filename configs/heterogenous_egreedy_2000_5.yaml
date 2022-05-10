@@ -3,9 +3,9 @@ num_nodes: 5 # >= 2f + 1
 min_fail_fraction: 0.8 # Minimum fraction of nodes to atleast fail at each round
 random_seed : 10
 
-stationary: True # Node failure probability 
+stationary: False # Node failure probability
 fail_nodes_update: 30 # Time between node failures
-failure_update: 15 # Time between updating node failure rate
+failure_update: 180 # Time between updating node failure rate
 
 # Type of election algorithm to use
 election_algorithm : 'Learning'
@@ -32,7 +32,7 @@ mab:
   epsilon: 0.1
   decay: 0.99
   alpha: 0.1
-  algo: 'UCB-penalize' # egreedy/UCB/UCB-penalize
+  algo: 'egreedy' # egreedy/UCB/UCB-penalize
   c: 2 # for UCB/UCB-penalize
 
 # client
