@@ -1,4 +1,5 @@
 import argparse
+from turtle import clear
 import numpy as np
 import matplotlib
 # switch to pgf backend
@@ -50,12 +51,48 @@ def plot_leader_elections(path, fmt='png'):
     data1 = decompress_pickle(join(args.path, 'leader_log.pbz2'))
     failed_election_idxs = np.where(data1[:, -1] == 1)[0]
 
+    arr = []
+    for i in range(data1.shape[0]-1):
+        if data1[i, -1] == 1:
+            cnt = 0
+            for j in range(i+1, data1.shape[0]-1):
+                if data1[j, -1] == 0:
+                    break
+                elif data1[j, -1] == 1:
+                    cnt += 1
+
+            arr.append(cnt)
+
+    failure_per_window = []
+    window = 100000
+    for i in range(data1.shape[0]-1):
+            cnt = 1
+            while data1[i+cnt, 0] <= data1[i, 0] + window:
+                cnt += 1
+                if i+cnt >= data1.shape[0]:
+                    break
+
+            failure_per_window.append(cnt)
+
+    fig, ax = plt.subplots(dpi=200)
+    ax.plot(np.arange(len(failure_per_window)), failure_per_window)
+    ax.set_xlabel(r'\# LE rounds')
+    ax.set_ylabel('Frequency')
+    fig.tight_layout()
+    fig.savefig(join(args.path, 'window_le.{}'.format(fmt)), format=fmt)
+
+    fig, ax = plt.subplots(dpi=200)
+    ax.hist(arr, bins=len(arr))
+    ax.set_xlabel(r'\# time between LE rounds')
+    ax.set_ylabel('Frequency')
+    ax.set_xticks(np.arange(1, max(arr)+1))
+    ax.set_xticklabels(np.arange(max(arr))+1)
+    fig.tight_layout()
+    fig.savefig(join(args.path, 'freq_le.{}'.format(fmt)), format=fmt)
+
     fig, ax = plt.subplots(dpi=200)
     ax.scatter(data[:, 0] - data[0, 0], data[:, 1], marker='o', s=50, c='Green')
     ax.scatter(data1[failed_election_idxs, 0] - data1[0, 0], data1[failed_election_idxs, 1], marker='*', s=50, c='Red')
-
-    # for fail_idx in failed_election_idxs:
-    #     plt.axvspan(a, b, color='y', alpha=0.5, lw=0)
 
     # ax.set_title("Leader Elections")
     ax.set_xlabel('Time')
