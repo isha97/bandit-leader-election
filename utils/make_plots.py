@@ -73,15 +73,41 @@ def plot_leader_elections(path, fmt='png'):
     fig.savefig(join(args.path, 'freq_le.{}'.format(fmt)), format=fmt)
 
     le_per_window = []
-    window = 50000
-    for i in range(0, data1.shape[0]-1, 2):
-            cnt = 1
-            while data1[i+cnt, 0] <= data1[i, 0] + window:
-                cnt += 1
-                if i+cnt >= data1.shape[0]:
-                    break
+    lb = 0
+    hb = 10000
+    window = 1000
+    low = 0
+    high = 1
+    print(data)
 
-            le_per_window.append(cnt)
+    start = data[0, 0]
+    end = data[data.shape[0]-1,0]
+    print((end - start)/(100*60))
+
+
+    while high <= data.shape[0]-1:
+        while(high <= data.shape[0]-1 and data[high, 0] - data[low, 0] <= window):
+            high += 1
+        if high >= low + 1:
+            le_per_window.append(high - low)
+            low = high
+            high = low + 1
+
+    print(le_per_window)
+
+    # while high <= data.shape[0]-1:
+    #     print(data[low, 0] - data[0, 0], lb, data[high, 0] - data[0, 0], hb)
+    #     while data[low, 0] - data[0, 0] >= lb and data[high, 0] - data[0, 0] <= hb:
+    #         high += 1
+    #     if high > low + 1:
+    #         le_per_window.append(high - low)
+    #         low = high
+    #         high = low + 1
+
+    #     lb += 10000
+    #     hb += 10000
+
+    # print(le_per_window)
 
     fig, ax = plt.subplots(dpi=200)
     ax.plot(np.arange(len(le_per_window)), le_per_window)
