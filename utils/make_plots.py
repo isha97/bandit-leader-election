@@ -46,106 +46,70 @@ def decompress_pickle(file):
     return data
 
 
-def plot_leader_elections(path, fmt='png'):
+def plot_leader_elections(path, nodes_cnt, fmt='png'):
     data = decompress_pickle(path)
-    data1 = decompress_pickle(join(args.path, 'leader_log.pbz2'))
-    failed_election_idxs = np.where(data1[:, -1] == 1)[0]
+    client_log = decompress_pickle(join(args.path, 'leader_log.pbz2'))
+    failed_election_idxs = np.where(client_log[:, -1] == 1)[0]
 
+
+    # Histogram plotting the frequency of delay between failure and electing a
+    # successful leader 
     arr = []
-    for i in range(data1.shape[0]-1):
-        if data1[i, -1] == 1:
+    for i in range(client_log.shape[0]-1):
+        if client_log[i, -1] == 1:
             cnt = 0
-            for j in range(i+1, data1.shape[0]-1):
-                if data1[j, -1] == 0:
+            for j in range(i+1, client_log.shape[0]-1):
+                if client_log[j, -1] == 0:
                     break
-                elif data1[j, -1] == 1:
+                elif client_log[j, -1] == 1:
                     cnt += 1
-
             arr.append(cnt)
 
+    arr = np.bincount(arr)
+
     fig, ax = plt.subplots(dpi=200)
-    ax.hist(arr, bins=len(arr))
-    ax.set_xlabel(r'\# time between LE rounds')
-    ax.set_ylabel('Frequency')
-    ax.set_xticks(np.arange(1, max(arr)+1))
-    ax.set_xticklabels(np.arange(max(arr))+1)
+    ax.bar(np.arange(1, len(arr)+1), arr)
+    ax.set_xlabel('Unit Delay')
+    ax.set_ylabel('Count')
     fig.tight_layout()
-    fig.savefig(join(args.path, 'freq_le.{}'.format(fmt)), format=fmt)
+    fig.savefig(join(args.path, 'le_delay_le.{}'.format(fmt)), format=fmt)
 
-    le_per_window = []
-    lb = 0
-    hb = 10000
-    window = 1000
-    low = 0
-    high = 1
-    print(data)
-
-    start = data[0, 0]
-    end = data[data.shape[0]-1,0]
-    print((end - start)/(100*60))
-
-
-    while high <= data.shape[0]-1:
-        while(high <= data.shape[0]-1 and data[high, 0] - data[low, 0] <= window):
-            high += 1
-        if high >= low + 1:
-            le_per_window.append(high - low)
-            low = high
-            high = low + 1
-
-    print(le_per_window)
-
-    # while high <= data.shape[0]-1:
-    #     print(data[low, 0] - data[0, 0], lb, data[high, 0] - data[0, 0], hb)
-    #     while data[low, 0] - data[0, 0] >= lb and data[high, 0] - data[0, 0] <= hb:
-    #         high += 1
-    #     if high > low + 1:
-    #         le_per_window.append(high - low)
-    #         low = high
-    #         high = low + 1
-
-    #     lb += 10000
-    #     hb += 10000
-
-    # print(le_per_window)
+    # Sliding window to plot frequency of successful leader election rounds
+    import skimage
+    a = np.zeros((int(data[-1, 0] - data[0, 0] + 1)))
+    a[np.int64(data[:, 0] - data[0, 0])] = 1
+    b = np.sum(skimage.util.view_as_windows(a, 100000, step=10000), axis=-1)
 
     fig, ax = plt.subplots(dpi=200)
-    ax.plot(np.arange(len(le_per_window)), le_per_window)
-    ax.set_xlabel('Frequency of LE rounds')
-    ax.set_ylabel('Window Steps')
+    ax.scatter(np.arange(b.shape[0]), b, color='green', marker='x')
+    plt.plot(np.arange(b.shape[0]), np.poly1d(np.polyfit(np.arange(b.shape[0]), b, 1))(np.arange(b.shape[0])), '--')
+    ax.set_ylabel(r'\# LE rounds')
+    ax.set_xlabel('Window Step')
     fig.tight_layout()
     fig.savefig(join(args.path, 'window_le.{}'.format(fmt)), format=fmt)
 
-    fail_per_window = []
-    window = 50000
-    for i in range(data1.shape[0]-1):
-            cnt = 1
-            track = 0
-            while data1[i+cnt, 0] <= data1[i, 0] + window:
-                if data1[i+cnt, -1] == 1:
-                    track += 1
-                cnt += 1
-                if i+cnt >= data1.shape[0]:
-                    break
-            fail_per_window.append(track)
+    # Sliding window to plot frequency of unsuccessful leader election rounds
+    a = np.zeros((int(client_log[-1, 0] - client_log[0, 0] + 1)))
+    a[np.int64(client_log[failed_election_idxs, 0] - client_log[0, 0])] = 1
+    b = np.sum(skimage.util.view_as_windows(a, 500000, step=100000), axis=-1)
 
     fig, ax = plt.subplots(dpi=200)
-    ax.plot(np.arange(len(fail_per_window)), fail_per_window)
-    ax.set_xlabel('Frequency of Failed LE rounds')
-    ax.set_ylabel('Window Steps')
+    ax.scatter(np.arange(b.shape[0]), b, color='red', marker='x')
+    plt.plot(np.arange(b.shape[0]), np.poly1d(np.polyfit(np.arange(b.shape[0]), b, 1))(np.arange(b.shape[0])), '--')
+    ax.set_ylabel(r'\# Failed LE rounds')
+    ax.set_xlabel('Window Step')
     fig.tight_layout()
-    fig.savefig(join(args.path, 'fail_window_le.{}'.format(fmt)), format=fmt)
-
+    fig.savefig(join(args.path, 'failed_window_le.{}'.format(fmt)), format=fmt)
 
     fig, ax = plt.subplots(dpi=200)
-    ax.scatter(data[:, 0] - data[0, 0], data[:, 1], marker='o', s=50, c='Green')
-    ax.scatter(data1[failed_election_idxs, 0] - data1[0, 0], data1[failed_election_idxs, 1], marker='*', s=50, c='Red')
+    ax.scatter(data[:, 0] - data[0, 0], data[:, 1], marker='o', s=50, c='Green', label='Sucessful LE Round')
+    ax.scatter(client_log[failed_election_idxs, 0] - client_log[0, 0], client_log[failed_election_idxs, 1], marker='*', s=40, c='Red', label='Unsucessful LE Round')
 
     # ax.set_title("Leader Elections")
     ax.set_xlabel('Time')
     ax.set_ylabel('Node ID')
-    ax.set_yticks(np.arange(23))
-    ax.set_yticklabels(np.arange(23)+1)
+    ax.set_yticks(np.arange(nodes_cnt))
+    ax.set_yticklabels(np.arange(nodes_cnt)+1)
     fig.tight_layout()
     fig.savefig(join(args.path, 'client_le.{}'.format(fmt)), format=fmt)
 
@@ -175,8 +139,8 @@ if __name__=='__main__':
     args = parser.parse_args()
 
     # Enter true probs before running
-    true_vals = [0.15, 0.7, 0.15, 0.95, 0.7]
-    # true_vals = [0.95, 0.15, 0.15, 0.7,  0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15]
+    # true_vals = [0.15, 0.7, 0.15, 0.95, 0.7]
+    true_vals = [0.95, 0.15, 0.15, 0.7,  0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15]
 
     print("Using True Failure Probs: {}".format(true_vals))
 
@@ -191,4 +155,4 @@ if __name__=='__main__':
     #     node_id = f.split('/')[-1].split('_')[1].split('.')[0]
     #     plot_fail_est(f, node_id, true_vals)
 
-    plot_leader_elections(join(args.path, "client_view_changes.pbz2"))
+    plot_leader_elections(join(args.path, "client_view_changes.pbz2"), len(true_vals))
