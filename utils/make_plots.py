@@ -82,7 +82,9 @@ def plot_leader_elections(path, nodes_cnt, fmt='png'):
 
     fig, ax = plt.subplots(dpi=200)
     ax.scatter(np.arange(b.shape[0]), b, color='green', marker='x')
-    plt.plot(np.arange(b.shape[0]), np.poly1d(np.polyfit(np.arange(b.shape[0]), b, 1))(np.arange(b.shape[0])), '--')
+    p = np.polyfit(np.arange(b.shape[0]), b, 1)
+    plt.annotate('$c = {:.2f}$'.format(p[0]), xy=(0.9, 0.9), xycoords='axes fraction', fontsize = 14)
+    plt.plot(np.arange(b.shape[0]), np.poly1d(p)(np.arange(b.shape[0])), '--')
     ax.set_ylabel(r'\# LE rounds')
     ax.set_xlabel('Window Step')
     fig.tight_layout()
@@ -95,15 +97,17 @@ def plot_leader_elections(path, nodes_cnt, fmt='png'):
 
     fig, ax = plt.subplots(dpi=200)
     ax.scatter(np.arange(b.shape[0]), b, color='red', marker='x')
-    plt.plot(np.arange(b.shape[0]), np.poly1d(np.polyfit(np.arange(b.shape[0]), b, 1))(np.arange(b.shape[0])), '--')
+    p = np.polyfit(np.arange(b.shape[0]), b, 1)
+    plt.annotate('$c = {:.2f}$'.format(p[0]), xy=(0.9, 0.9), xycoords='axes fraction', fontsize = 14)
+    plt.plot(np.arange(b.shape[0]), np.poly1d(p)(np.arange(b.shape[0])), '--')
     ax.set_ylabel(r'\# Failed LE rounds')
     ax.set_xlabel('Window Step')
     fig.tight_layout()
     fig.savefig(join(args.path, 'failed_window_le.{}'.format(fmt)), format=fmt)
 
     fig, ax = plt.subplots(dpi=200)
-    ax.scatter(data[:, 0] - data[0, 0], data[:, 1], marker='o', s=50, c='Green', label='Sucessful LE Round')
-    ax.scatter(client_log[failed_election_idxs, 0] - client_log[0, 0], client_log[failed_election_idxs, 1], marker='*', s=40, c='Red', label='Unsucessful LE Round')
+    ax.scatter(data[:, 0] - data[0, 0], data[:, 1], marker='o', s=50, c='Green', label='Successful LE Round')
+    ax.scatter(client_log[failed_election_idxs, 0] - client_log[0, 0], client_log[failed_election_idxs, 1], marker='*', s=40, c='Red', label='Unsuccessful LE Round')
 
     # ax.set_title("Leader Elections")
     ax.set_xlabel('Time')
@@ -111,6 +115,7 @@ def plot_leader_elections(path, nodes_cnt, fmt='png'):
     ax.set_yticks(np.arange(nodes_cnt))
     ax.set_yticklabels(np.arange(nodes_cnt)+1)
     fig.tight_layout()
+    ax.legend()
     fig.savefig(join(args.path, 'client_le.{}'.format(fmt)), format=fmt)
 
 
