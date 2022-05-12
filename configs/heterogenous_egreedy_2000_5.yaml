@@ -37,7 +37,7 @@ mab:
 
 # client
 client:
-  num_requests: 2000
+  num_requests: 1000
 
 # ports
 port:

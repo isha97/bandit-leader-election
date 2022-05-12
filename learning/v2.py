@@ -1,3 +1,4 @@
+from collections import deque
 import time
 from os.path import join
 import numpy as np
@@ -69,7 +70,8 @@ class v2(Node):
         self.local_leader = None
         self.penalize_values = np.zeros((self.total_nodes))
         self.request_broadcast_id = None
-
+        self.buffer_length = 20
+        self.memory = [deque([], self.buffer_length) for _ in range(self.total_nodes)]
 
         # Set failure estimate of all nodes (noisy)
         self.failure_estimates = self.rng.normal(
@@ -107,6 +109,10 @@ class v2(Node):
         -------
             ids (np.ndarray): ndarray of candidate ids
         """
+        # if an arm memory is full, update the estimates of the arm
+        for arm in range(self.total_nodes):
+            if len(self.memory[arm]) == self.buffer_length:
+                self.failure_estimates[arm] = sum(self.memory[arm])/self.buffer_length
 
         if self.explore_exploit == 'egreedy':
             if self.rng.random() < self.epsilon:
@@ -152,11 +158,12 @@ class v2(Node):
         # if self.explore_exploit == 'egreedy':
         #     return self.rng.choice(self.total_nodes, size=1, replace=False)[0]
         # elif self.explore_exploit == 'UCB':
-        choice = np.argmax(
-              self.failure_estimates + self.tradeoff*np.sqrt(np.log(self.t)/self.arm_counts)
-        )
+        # choice = np.argmax(
+        #       self.failure_estimates + self.tradeoff*np.sqrt(np.log(self.t)/self.arm_counts)
+        # )
+        return self.rng.choice(self.total_nodes, size=1, replace=False)[0]
         # self.arm_counts[choice] += 1
-        return choice
+        # return choice
 
     def penalize(self):
         # Penalize the local_leader which was selected  but isn't alive so that it doesn't get selected again
@@ -567,6 +574,7 @@ class v2(Node):
         self.node_count[id] += 1
         self.t += 1
         self.fail_est_logger.tick(time.time()*100, self.failure_estimates)
+        self.memory[id].appendleft(0)
         logging.info("[FailEst DOWN] Updating Node: {} New FailEst: {}".format(id, self.failure_estimates))
 
 
@@ -583,6 +591,7 @@ class v2(Node):
         self.node_count[id] += 1
         self.t += 1
         self.fail_est_logger.tick(time.time()*100, self.failure_estimates)
+        self.memory[id].appendleft(1)
         logging.info("[FailEst UP] Updating Node: {} New FailEst: {}".format(id, self.failure_estimates))
 
 
